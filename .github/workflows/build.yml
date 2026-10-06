@@ -1,30 +1,40 @@
-name: Build Android APK
+name: Build APK
 
 on:
   push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-24.04
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v5
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
 
-    - name: Install Gradle
-      run: sudo apt-get update && sudo apt-get install -y gradle
+      - name: Set up Gradle 8.10.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.10.2
+      - name: Fix layout attribute
+        run: sed -i 's/android:hintTextColor/android:textColorHint/g' app/src/main/res/layout/activity_main.xml
+      - name: Build Debug APK
+        run: |
+          set -o pipefail
+          gradle assembleDebug --console=plain --no-daemon 2>&1 | tee build.log
 
-    - name: Build Debug APK with System Gradle
-      run: gradle assembleDebug
+      - name: Show only the real error
+        if: failure()
+        run: |
+          grep -E "^e: |error:|What went wrong" -A4 build.log | head -40 | while IFS= read -r line; do
+            echo "::error::$line"
+          done
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
