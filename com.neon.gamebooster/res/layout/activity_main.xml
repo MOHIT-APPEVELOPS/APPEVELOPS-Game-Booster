@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_black"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- App Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="NEON GAME BOOSTER"
+        android:textColor="@color/neon_red"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.1" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Secure • Non-Root • Anti-Ban"
+        android:textColor="@color/text_gray"
+        android:textSize="12sp"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Status Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/card_bg"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:layout_marginBottom="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="SYSTEM STATUS"
+            android:textColor="@color/neon_red"
+            android:textStyle="bold"
+            android:textSize="14sp"/>
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Shizuku &amp; VPN: Ready"
+            android:textColor="@color/text_white"
+            android:textSize="16sp"
+            android:layout_marginTop="8dp"/>
+    </LinearLayout>
+
+    <!-- Action Buttons -->
+    <Button
+        android:id="@+id/btnToggleBoost"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="START OPTIMIZATION"
+        android:textColor="@color/text_white"
+        android:backgroundTint="@color/neon_red"
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp"/>
+
+    <Button
+        android:id="@+id/btnCrosshairSettings"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:text="Configure Crosshair &amp; Aim Assist"
+        android:textColor="@color/text_white"
+        android:backgroundTint="@color/card_bg" />
+
+</LinearLayout>
