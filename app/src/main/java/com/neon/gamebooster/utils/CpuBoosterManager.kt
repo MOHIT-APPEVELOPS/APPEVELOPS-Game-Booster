@@ -10,7 +10,17 @@ object CpuBoosterManager {
                     "sh", "-c",
                     "echo performance > /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
                 )
-                val process = Shizuku.newProcess(command, null, null)
+                
+                // Reflection to bypass private access of Shizuku.newProcess
+                val method = Shizuku::class.java.getDeclaredMethod(
+                    "newProcess",
+                    Array<String>::class.java,
+                    Array<String>::class.java,
+                    String::class.java
+                )
+                method.isAccessible = true
+                val process = method.invoke(null, command, null, null) as Process
+                
                 process.waitFor()
                 true
             } catch (e: Exception) {
