@@ -23,8 +23,22 @@ jobs:
         with:
           gradle-version: 8.10.2
 
+      - name: Ensure gradle.properties has AndroidX enabled
+        run: |
+          if [ ! -f gradle.properties ]; then
+            echo "android.useAndroidX=true" > gradle.properties
+            echo "android.nonTransitiveRClass=true" >> gradle.properties
+          else
+            if ! grep -q "android.useAndroidX=true" gradle.properties; then
+              echo "android.useAndroidX=true" >> gradle.properties
+            fi
+          fi
+
       - name: Fix layout attribute
-        run: sed -i 's/android:hintTextColor/android:textColorHint/g' app/src/main/res/layout/activity_main.xml
+        run: |
+          if [ -f app/src/main/res/layout/activity_main.xml ]; then
+            sed -i 's/android:hintTextColor/android:textColorHint/g' app/src/main/res/layout/activity_main.xml
+          fi
 
       - name: Build Debug APK
         run: |
