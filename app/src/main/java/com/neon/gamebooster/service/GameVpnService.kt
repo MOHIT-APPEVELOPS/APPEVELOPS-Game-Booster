@@ -14,8 +14,12 @@ class GameVpnService : VpnService() {
 
     private var vpnInterface: ParcelFileDescriptor? = null
 
+    companion object {
+        const val ACTION_STOP_VPN = "com.neon.gamebooster.STOP_VPN"
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == "STOP") {
+        if (intent?.action == ACTION_STOP_VPN || intent?.action == "STOP") {
             stopVpn()
             return START_NOT_STICKY
         }
