@@ -28,12 +28,13 @@ class AppListActivity : AppCompatActivity() {
 
         val pm = packageManager
         val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 } // Sirf user apps
+            .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
             .sortedBy { pm.getApplicationLabel(it).toString() }
 
         val appNames = apps.map { pm.getApplicationLabel(it).toString() }
 
-        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_multiple_choice, appNames)
+        // Custom list_item_app layout implementation for white text
+        val adapter = ArrayAdapter(this, R.layout.list_item_app, appNames)
         listView.adapter = adapter
         listView.choiceMode = ListView.CHOICE_MODE_MULTIPLE
 
@@ -53,7 +54,7 @@ class AppListActivity : AppCompatActivity() {
             }
 
             prefs.edit().putStringSet("selected_apps", selectedPackages).apply()
-            Toast.makeText(this, "Apps Saved for VPN Tunneling!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Apps Saved for VPN Isolation!", Toast.LENGTH_SHORT).show()
             finish()
         }
     }
