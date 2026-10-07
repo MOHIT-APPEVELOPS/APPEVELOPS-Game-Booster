@@ -50,6 +50,16 @@
     </LinearLayout>
 
     <Button
+        android:id="@+id/btnSelectApps"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:text="SELECT GAMES / APPS FOR VPN"
+        android:textColor="@color/text_white"
+        android:backgroundTint="@color/card_bg"
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp"/>
+
+    <Button
         android:id="@+id/btnToggleBoost"
         android:layout_width="match_parent"
         android:layout_height="60dp"
