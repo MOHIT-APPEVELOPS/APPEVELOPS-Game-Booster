@@ -32,6 +32,35 @@ object CpuBoosterManager {
         executeCommand("settings put global animator_duration_scale $value")
     }
 
+    // Reset all animations back to normal (1.0x) when exiting game
+    fun resetAnimationsToNormal() {
+        val commands = arrayOf(
+            "settings put global window_animation_scale 1.0",
+            "settings put global transition_animation_scale 1.0",
+            "settings put global animator_duration_scale 1.0"
+        )
+        if (isShizukuAvailableAndGranted()) {
+            try {
+                val newProcessMethod = Shizuku::class.java.getDeclaredMethod(
+                    "newProcess",
+                    Array<String>::class.java,
+                    Array<String>::class.java,
+                    String::class.java
+                )
+                newProcessMethod.isAccessible = true
+                val process = newProcessMethod.invoke(
+                    null,
+                    arrayOf("sh", "-c", commands.joinToString(" && ")),
+                    null,
+                    null
+                ) as Process
+                process.waitFor()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     // Command Dispatcher (Shizuku + Shell Fallback)
     private fun executeCommand(command: String) {
         if (isShizukuAvailableAndGranted()) {
