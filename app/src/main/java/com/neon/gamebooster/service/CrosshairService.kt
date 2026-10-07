@@ -58,11 +58,11 @@ class CrosshairService : Service() {
             // Saved position load karne ke liye
             val prefs = getSharedPreferences("CrosshairPrefs", Context.MODE_PRIVATE)
             val savedX = prefs.getInt("pos_x", 0)
-            val savedY = prefs.getInt("pos_y", 0)
+            val savedY = prefs.getInt("pos_y", 1)
 
             val textView = TextView(this).apply {
-                text = "+"
-                textSize = 28f
+                text = "o"
+                textSize = 29f
                 setTextColor(Color.RED)
                 gravity = Gravity.CENTER
                 includeFontPadding = false
