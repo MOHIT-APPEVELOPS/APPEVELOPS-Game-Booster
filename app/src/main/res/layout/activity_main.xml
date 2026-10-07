@@ -21,7 +21,7 @@
         android:text="Secure • Non-Root • Anti-Ban"
         android:textColor="@color/text_gray"
         android:textSize="12sp"
-        android:layout_marginBottom="24dp"/>
+        android:layout_marginBottom="20dp"/>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -29,7 +29,7 @@
         android:background="@color/card_bg"
         android:orientation="vertical"
         android:padding="16dp"
-        android:layout_marginBottom="20dp">
+        android:layout_marginBottom="16dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -53,28 +53,69 @@
         android:id="@+id/btnSelectApps"
         android:layout_width="match_parent"
         android:layout_height="55dp"
-        android:text="SELECT GAMES / APPS FOR VPN"
+        android:text="SELECT GAMES / APPS"
         android:textColor="@color/text_white"
         android:backgroundTint="@color/card_bg"
         android:textStyle="bold"
-        android:layout_marginBottom="12dp"/>
+        android:layout_marginBottom="16dp"/>
+
+    <!-- VPN Feature Toggle -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/card_bg"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="VPN Ping Isolation"
+            android:textColor="@color/text_white"
+            android:textSize="16sp"
+            android:textStyle="bold"/>
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchVpn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
+    <!-- Crosshair Feature Toggle -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/card_bg"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="20dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Floating Crosshair"
+            android:textColor="@color/text_white"
+            android:textSize="16sp"
+            android:textStyle="bold"/>
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchCrosshair"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
 
     <Button
         android:id="@+id/btnToggleBoost"
         android:layout_width="match_parent"
         android:layout_height="60dp"
-        android:text="START OPTIMIZATION"
+        android:text="START BOOSTER SERVICE"
         android:textColor="@color/text_white"
         android:backgroundTint="@color/neon_red"
-        android:textStyle="bold"
-        android:layout_marginBottom="12dp"/>
-
-    <Button
-        android:id="@+id/btnCrosshairSettings"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:text="Enable Floating Crosshair"
-        android:textColor="@color/text_white"
-        android:backgroundTint="@color/card_bg" />
+        android:textStyle="bold"/>
 
 </LinearLayout>
