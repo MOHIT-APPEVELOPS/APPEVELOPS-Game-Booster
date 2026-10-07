@@ -7,7 +7,7 @@ import rikka.shizuku.Shizuku
 
 object CpuBoosterManager {
 
-    // 1. Shizuku Permission Check Helper
+    // 1. Shizuku Status and Permission Check
     fun isShizukuAvailableAndGranted(): Boolean {
         return try {
             Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
@@ -16,16 +16,18 @@ object CpuBoosterManager {
         }
     }
 
-    // 2. CPU Performance Mode Apply karne ke liye
+    // 2. CPU Performance Mode Execution
     fun applyPerformanceMode() {
         if (isShizukuAvailableAndGranted()) {
             executeShizukuCommand("cmd power set-fixed-performance-mode-enabled true")
+        } else {
+            executeShellCommand("cmd power set-fixed-performance-mode-enabled true")
         }
     }
 
-    // 3. Shizuku Level Silent Auto Clean & Boost System
+    // 3. Silent Auto Clean & Boost System
     fun autoCleanAndBoostSystem(context: Context, gamePackageName: String) {
-        // Step A: System Garbage Collection
+        // Step A: Memory Garbage Collection
         try {
             System.gc()
             Runtime.getRuntime().gc()
@@ -33,7 +35,7 @@ object CpuBoosterManager {
             e.printStackTrace()
         }
 
-        // Step B: Kill Non-Essential Background Apps
+        // Step B: Kill Background Apps
         try {
             val am = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
             val pm = context.packageManager
@@ -44,12 +46,12 @@ object CpuBoosterManager {
                     app.packageName != gamePackageName &&
                     (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0) {
                     
-                    // Normal Framework Kill
                     am.killBackgroundProcesses(app.packageName)
                     
-                    // Shizuku Elevated Force Stop Command
                     if (isShizukuAvailableAndGranted()) {
                         executeShizukuCommand("am force-stop ${app.packageName}")
+                    } else {
+                        executeShellCommand("am force-stop ${app.packageName}")
                     }
                 }
             }
@@ -57,39 +59,33 @@ object CpuBoosterManager {
             e.printStackTrace()
         }
 
-        // Step C: Deep Cache Trim & High Performance Governor
+        // Step C: Storage & Cache Optimization
         if (isShizukuAvailableAndGranted()) {
             executeShizukuCommand("pm trim-caches 1000G")
             executeShizukuCommand("am kill-all")
             executeShizukuCommand("cmd power set-fixed-performance-mode-enabled true")
+        } else {
+            executeShellCommand("pm trim-caches 1000G")
         }
     }
 
-    // Shizuku Command Execution Engine
+    // Official Shizuku Process Command Execution
     private fun executeShizukuCommand(command: String) {
         try {
-            val execMethod = Shizuku::class.java.getDeclaredMethod(
-                "newProcess",
-                Array<String>::class.java,
-                Array<String>::class.java,
-                String::class.java
-            )
-            execMethod.isAccessible = true
-            val process = execMethod.invoke(
-                null,
-                arrayOf("sh", "-c", command),
-                null,
-                null
-            ) as Process
+            val process = Shizuku.newProcess(arrayOf("sh", "-c", command), null, null)
             process.waitFor()
         } catch (e: Exception) {
-            // Fallback to standard runtime shell if reflection is restricted
-            try {
-                val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
-                process.waitFor()
-            } catch (ex: Exception) {
-                ex.printStackTrace()
-            }
+            executeShellCommand(command)
+        }
+    }
+
+    // Standard Fallback Shell Command
+    private fun executeShellCommand(command: String) {
+        try {
+            val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
+            process.waitFor()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }
