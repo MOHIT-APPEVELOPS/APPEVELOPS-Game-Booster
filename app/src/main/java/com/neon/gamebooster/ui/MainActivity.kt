@@ -38,6 +38,9 @@ class MainActivity : AppCompatActivity() {
         val btnToggleBoost = findViewById<Button>(R.id.btnToggleBoost)
         val switchVpn = findViewById<SwitchCompat>(R.id.switchVpn)
         val switchCrosshair = findViewById<SwitchCompat>(R.id.switchCrosshair)
+        val switchWindowAnim = findViewById<SwitchCompat>(R.id.switchWindowAnim)
+        val switchTransitionAnim = findViewById<SwitchCompat>(R.id.switchTransitionAnim)
+        val switchAnimatorAnim = findViewById<SwitchCompat>(R.id.switchAnimatorAnim)
         rvSelectedGames = findViewById(R.id.rvSelectedGames)
 
         rvSelectedGames.layoutManager = LinearLayoutManager(this)
@@ -47,6 +50,9 @@ class MainActivity : AppCompatActivity() {
         // Load saved states for switches
         switchVpn.isChecked = prefs.getBoolean("enable_vpn", true)
         switchCrosshair.isChecked = prefs.getBoolean("enable_crosshair", true)
+        switchWindowAnim.isChecked = prefs.getBoolean("enable_window_anim", true)
+        switchTransitionAnim.isChecked = prefs.getBoolean("enable_transition_anim", true)
+        switchAnimatorAnim.isChecked = prefs.getBoolean("enable_animator_anim", true)
 
         // VPN Switch Listener
         switchVpn.setOnCheckedChangeListener { _, isChecked ->
@@ -72,6 +78,36 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Window Animation Scale Switch
+        switchWindowAnim.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("enable_window_anim", isChecked).apply()
+            if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
+                CpuBoosterManager.setWindowAnimationScale(isChecked)
+            } else if (isChecked) {
+                requestShizukuPermission()
+            }
+        }
+
+        // Transition Animation Scale Switch
+        switchTransitionAnim.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("enable_transition_anim", isChecked).apply()
+            if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
+                CpuBoosterManager.setTransitionAnimationScale(isChecked)
+            } else if (isChecked) {
+                requestShizukuPermission()
+            }
+        }
+
+        // Animator Duration Scale Switch
+        switchAnimatorAnim.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("enable_animator_anim", isChecked).apply()
+            if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
+                CpuBoosterManager.setAnimatorDurationScale(isChecked)
+            } else if (isChecked) {
+                requestShizukuPermission()
+            }
+        }
+
         // App Selection Button
         btnSelectApps.setOnClickListener {
             startActivity(Intent(this, AppListActivity::class.java))
@@ -84,7 +120,10 @@ class MainActivity : AppCompatActivity() {
             } else {
                 try {
                     CpuBoosterManager.applyPerformanceMode()
-                    Toast.makeText(this, "CPU Performance Mode & Deep Boost Applied!", Toast.LENGTH_SHORT).show()
+                    CpuBoosterManager.setWindowAnimationScale(prefs.getBoolean("enable_window_anim", true))
+                    CpuBoosterManager.setTransitionAnimationScale(prefs.getBoolean("enable_transition_anim", true))
+                    CpuBoosterManager.setAnimatorDurationScale(prefs.getBoolean("enable_animator_anim", true))
+                    Toast.makeText(this, "Booster & Custom Animation Scales Active!", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -139,26 +178,35 @@ class MainActivity : AppCompatActivity() {
 
         val adapter = SelectedGamesAdapter(list) { game ->
             if (!CpuBoosterManager.isShizukuAvailableAndGranted()) {
-                Toast.makeText(this, "Shizuku required for Silent Deep Cleanup!", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Shizuku required for Custom Animation Speed Optimization!", Toast.LENGTH_LONG).show()
                 requestShizukuPermission()
             } else {
-                Toast.makeText(this, "Silent Shizuku Boosting System...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Applying Animation Scales & Launching Game...", Toast.LENGTH_SHORT).show()
 
-                // 1. Perform Background App Kill, Storage/Cache Cleanup & Memory Boost
+                // 1. Perform Background App Kill & Cleanup
                 try {
                     CpuBoosterManager.autoCleanAndBoostSystem(this, game.packageName)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
 
-                // 2. Apply CPU Performance Mode
+                // 2. Apply Animation Scales individually based on user toggle preferences
+                try {
+                    CpuBoosterManager.setWindowAnimationScale(prefs.getBoolean("enable_window_anim", true))
+                    CpuBoosterManager.setTransitionAnimationScale(prefs.getBoolean("enable_transition_anim", true))
+                    CpuBoosterManager.setAnimatorDurationScale(prefs.getBoolean("enable_animator_anim", true))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                // 3. Apply CPU Performance Mode
                 try {
                     CpuBoosterManager.applyPerformanceMode()
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
 
-                // 3. Launch Selected Game
+                // 4. Launch Game
                 val launchIntent = pm.getLaunchIntentForPackage(game.packageName)
                 if (launchIntent != null) {
                     startActivity(launchIntent)
