@@ -1,3 +1,4 @@
 <resources>
+    <string name="app_name">Neon Game Booster</string>
     <string name="accessibility_service_description">Automated background cleanup and boosting service for Neon Game Booster.</string>
 </resources>
