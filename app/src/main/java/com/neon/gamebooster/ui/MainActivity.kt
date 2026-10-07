@@ -2,6 +2,7 @@ package com.neon.gamebooster.ui
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.net.VpnService
 import android.os.Build
@@ -12,6 +13,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.neon.gamebooster.R
 import com.neon.gamebooster.utils.CpuBoosterManager
 
@@ -19,6 +22,7 @@ class MainActivity : AppCompatActivity() {
 
     private val VPN_REQUEST_CODE = 100
     private val OVERLAY_REQUEST_CODE = 101
+    private lateinit var rvSelectedGames: RecyclerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,10 +35,12 @@ class MainActivity : AppCompatActivity() {
         val btnToggleBoost = findViewById<Button>(R.id.btnToggleBoost)
         val switchVpn = findViewById<SwitchCompat>(R.id.switchVpn)
         val switchCrosshair = findViewById<SwitchCompat>(R.id.switchCrosshair)
+        rvSelectedGames = findViewById(R.id.rvSelectedGames)
+
+        rvSelectedGames.layoutManager = LinearLayoutManager(this)
 
         tvStatus.text = "Shizuku & Booster: Ready"
 
-        // Load saved states
         switchVpn.isChecked = prefs.getBoolean("enable_vpn", true)
         switchCrosshair.isChecked = prefs.getBoolean("enable_crosshair", true)
 
@@ -78,6 +84,47 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Booster Service Active!", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadSelectedGames()
+    }
+
+    private fun loadSelectedGames() {
+        val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
+        val selectedSet = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
+        val pm = packageManager
+        val list = ArrayList<GameModel>()
+
+        for (pkg in selectedSet) {
+            try {
+                val appInfo = pm.getApplicationInfo(pkg, 0)
+                val name = pm.getApplicationLabel(appInfo).toString()
+                val icon = pm.getApplicationIcon(appInfo)
+                list.add(GameModel(name, pkg, icon))
+            } catch (e: PackageManager.NameNotFoundException) {
+                e.printStackTrace()
+            }
+        }
+
+        val adapter = SelectedGamesAdapter(list) { game ->
+            // Boost Performance before Launching
+            try {
+                CpuBoosterManager.applyPerformanceMode()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            // Launch Game
+            val launchIntent = pm.getLaunchIntentForPackage(game.packageName)
+            if (launchIntent != null) {
+                startActivity(launchIntent)
+            } else {
+                Toast.makeText(this, "Unable to launch app", Toast.LENGTH_SHORT).show()
+            }
+        }
+        rvSelectedGames.adapter = adapter
     }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
