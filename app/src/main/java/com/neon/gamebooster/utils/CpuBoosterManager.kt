@@ -16,13 +16,34 @@ object CpuBoosterManager {
         }
     }
 
+    // Individual Animation Scale Control Methods (0.1x vs 1.0x)
+    fun setWindowAnimationScale(enable: Boolean) {
+        val value = if (enable) "0.1" else "1.0"
+        executeCommand("settings put global window_animation_scale $value")
+    }
+
+    fun setTransitionAnimationScale(enable: Boolean) {
+        val value = if (enable) "0.1" else "1.0"
+        executeCommand("settings put global transition_animation_scale $value")
+    }
+
+    fun setAnimatorDurationScale(enable: Boolean) {
+        val value = if (enable) "0.1" else "1.0"
+        executeCommand("settings put global animator_duration_scale $value")
+    }
+
+    // Command Dispatcher (Shizuku + Shell Fallback)
+    private fun executeCommand(command: String) {
+        if (isShizukuAvailableAndGranted()) {
+            executeShizukuCommand(command)
+        } else {
+            executeShellCommand(command)
+        }
+    }
+
     // 2. CPU Performance Mode Execution
     fun applyPerformanceMode() {
-        if (isShizukuAvailableAndGranted()) {
-            executeShizukuCommand("cmd power set-fixed-performance-mode-enabled true")
-        } else {
-            executeShellCommand("cmd power set-fixed-performance-mode-enabled true")
-        }
+        executeCommand("cmd power set-fixed-performance-mode-enabled true")
     }
 
     // 3. Silent Auto Clean & Boost System
@@ -47,29 +68,20 @@ object CpuBoosterManager {
                     (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0) {
                     
                     am.killBackgroundProcesses(app.packageName)
-                    
-                    if (isShizukuAvailableAndGranted()) {
-                        executeShizukuCommand("am force-stop ${app.packageName}")
-                    } else {
-                        executeShellCommand("am force-stop ${app.packageName}")
-                    }
+                    executeCommand("am force-stop ${app.packageName}")
                 }
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
-        // Step C: Storage & Cache Optimization
-        if (isShizukuAvailableAndGranted()) {
-            executeShizukuCommand("pm trim-caches 1000G")
-            executeShizukuCommand("am kill-all")
-            executeShizukuCommand("cmd power set-fixed-performance-mode-enabled true")
-        } else {
-            executeShellCommand("pm trim-caches 1000G")
-        }
+        // Step C: Cache & Performance
+        executeCommand("pm trim-caches 1000G")
+        executeCommand("am kill-all")
+        executeCommand("cmd power set-fixed-performance-mode-enabled true")
     }
 
-    // Safe Shizuku Process Execution via Reflection (Fixes private 'newProcess' error)
+    // Safe Shizuku Process Execution via Reflection
     private fun executeShizukuCommand(command: String) {
         try {
             val newProcessMethod = Shizuku::class.java.getDeclaredMethod(
