@@ -54,7 +54,6 @@ class CrosshairService : Service() {
         try {
             windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-            // Safe crosshair creation without extra layout dependencies
             val textView = TextView(this).apply {
                 text = "+"
                 textSize = 32f
@@ -74,7 +73,7 @@ class CrosshairService : Service() {
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 layoutType,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                PixelFormat.TRANSLATION_MODES_DEFAULT
+                PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.CENTER
             }
