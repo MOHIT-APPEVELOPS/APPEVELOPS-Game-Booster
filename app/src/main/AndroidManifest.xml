@@ -19,6 +19,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
 
+        <!-- Mandatory Shizuku Provider Registration -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:multiprocess="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+
         <!-- Main Activity -->
         <activity
             android:name=".ui.MainActivity"
@@ -52,10 +61,10 @@
             android:exported="false"
             android:foregroundServiceType="specialUse" />
 
-        <!-- Accessibility Service (Required for Auto-Disconnect) -->
+        <!-- Accessibility Service -->
         <service
             android:name=".service.GameAccessibilityService"
-            android:label="Neon Game Booster Service"
+            android:label="@string/app_name"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="true">
             <intent-filter>
@@ -65,19 +74,7 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
-        
-<service
-    android:name=".services.AppAutoCleanerService"
-    android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-    android:exported="true">
-    <intent-filter>
-        <action android:name="android.accessibilityservice.AccessibilityService" />
-    </intent-filter>
-    <meta-data
-        android:name="android.accessibilityservice"
-        android:resource="@xml/accessibility_service_config" />
-</service>
-        
+
     </application>
 
 </manifest>
