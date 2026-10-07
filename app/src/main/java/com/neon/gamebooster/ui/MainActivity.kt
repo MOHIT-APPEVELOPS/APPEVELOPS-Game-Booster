@@ -17,9 +17,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        
+        try {
+            setContentView(R.layout.activity_main)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
-        // Safe-call (?.) use kiya hai taaki agar button na mile toh app crash na ho
         val btnToggleBoost = findViewById<Button?>(R.id.btnToggleBoost)
         val btnCrosshairSettings = findViewById<Button?>(R.id.btnCrosshairSettings)
 
