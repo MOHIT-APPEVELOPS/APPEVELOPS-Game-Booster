@@ -2,137 +2,155 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_black"
+    android:background="#0D0E15"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:padding="16dp">
 
+    <!-- Header Title -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="NEON GAME BOOSTER"
-        android:textColor="@color/neon_red"
+        android:textColor="#FF0055"
         android:textSize="22sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.1" />
+        android:textStyle="bold" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
         android:text="Secure • Non-Root • Anti-Ban"
-        android:textColor="@color/text_gray"
-        android:textSize="12sp"
-        android:layout_marginBottom="16dp"/>
+        android:textColor="#A0A5BD"
+        android:textSize="12sp" />
 
+    <!-- Status Card -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/card_bg"
+        android:background="#161823"
         android:orientation="vertical"
-        android:padding="12dp"
-        android:layout_marginBottom="12dp">
+        android:padding="16dp"
+        android:layout_marginBottom="16dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="SYSTEM STATUS"
-            android:textColor="@color/neon_red"
-            android:textStyle="bold"
-            android:textSize="13sp"/>
+            android:textColor="#FF0055"
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvStatus"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Shizuku &amp; Booster: Ready"
-            android:textColor="@color/text_white"
-            android:textSize="15sp"
-            android:layout_marginTop="4dp"/>
+            android:layout_marginTop="6dp"
+            android:text="Checking Engine Status..."
+            android:textColor="#FFFFFF"
+            android:textSize="14sp" />
     </LinearLayout>
 
+    <!-- Select Apps Button -->
     <Button
         android:id="@+id/btnSelectApps"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
+        android:layout_height="wrap_content"
+        android:backgroundTint="#161823"
         android:text="SELECT GAMES / APPS"
-        android:textColor="@color/text_white"
-        android:backgroundTint="@color/card_bg"
+        android:textColor="#FFFFFF"
         android:textStyle="bold"
-        android:layout_marginBottom="10dp"/>
+        android:layout_marginBottom="12dp" />
 
-    <!-- VPN Feature Toggle -->
+    <!-- Features Container -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/card_bg"
-        android:orientation="horizontal"
+        android:background="#161823"
+        android:orientation="vertical"
         android:padding="12dp"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="8dp">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="VPN Ping Isolation"
-            android:textColor="@color/text_white"
-            android:textSize="15sp"
-            android:textStyle="bold"/>
-
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switchVpn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-    </LinearLayout>
-
-    <!-- Crosshair Feature Toggle -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/card_bg"
-        android:orientation="horizontal"
-        android:padding="12dp"
-        android:gravity="center_vertical"
         android:layout_marginBottom="12dp">
 
-        <TextView
-            android:layout_width="0dp"
+        <!-- VPN Switch -->
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchVpn"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Floating Crosshair"
-            android:textColor="@color/text_white"
-            android:textSize="15sp"
-            android:textStyle="bold"/>
+            android:text="VPN Ping Isolation"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:padding="6dp" />
 
+        <!-- Crosshair Switch -->
         <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/switchCrosshair"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Floating Crosshair"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:padding="6dp" />
+
+        <!-- Window Animation Scale Switch -->
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchWindowAnim"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Window Animation Scale (0.1x)"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:padding="6dp" />
+
+        <!-- Transition Animation Scale Switch -->
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchTransitionAnim"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Transition Animation Scale (0.1x)"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:padding="6dp" />
+
+        <!-- Animator Duration Scale Switch -->
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchAnimatorAnim"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Animator Duration Scale (0.1x)"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:padding="6dp" />
+
     </LinearLayout>
 
+    <!-- Start Booster Service Button -->
     <Button
         android:id="@+id/btnToggleBoost"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="wrap_content"
+        android:backgroundTint="#FF0055"
         android:text="START BOOSTER SERVICE"
-        android:textColor="@color/text_white"
-        android:backgroundTint="@color/neon_red"
+        android:textColor="#FFFFFF"
         android:textStyle="bold"
-        android:layout_marginBottom="12dp"/>
+        android:layout_marginBottom="16dp" />
 
-    <!-- Selected Games Dashboard Box -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="SELECTED GAMES DASHBOARD"
-        android:textColor="@color/text_gray"
+        android:textColor="#A0A5BD"
         android:textSize="12sp"
         android:textStyle="bold"
-        android:layout_marginBottom="6dp"/>
+        android:layout_marginBottom="8dp" />
 
+    <!-- Selected Games List -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvSelectedGames"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_height="match_parent" />
 
 </LinearLayout>
