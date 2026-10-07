@@ -14,7 +14,17 @@ class GameVpnService : VpnService() {
 
     private var vpnInterface: ParcelFileDescriptor? = null
 
+    companion object {
+        const val ACTION_STOP_VPN = "com.neon.gamebooster.STOP_VPN"
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Agar stop command mili hai toh VPN close karo
+        if (intent?.action == ACTION_STOP_VPN) {
+            stopVpn()
+            return START_NOT_STICKY
+        }
+
         startForegroundNotification()
 
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
@@ -23,11 +33,9 @@ class GameVpnService : VpnService() {
         val builder = Builder()
             .setSession("NeonGameVpn")
             .addAddress("10.0.0.2", 24)
-            .addRoute("0.0.0.0", 0) // Capture all IPv4 traffic into dummy VPN (Blocks Internet)
-            .addRoute("::", 0)       // Capture all IPv6 traffic into dummy VPN (Blocks Internet)
+            .addRoute("0.0.0.0", 0)
+            .addRoute("::", 0)
 
-        // Selected apps ko VPN se Exclude kar rahe hain.
-        // Isse selected games ko direct high-speed internet milega aur baki saari apps ka internet BLOCK ho jayega!
         if (selectedApps.isNotEmpty()) {
             for (pkg in selectedApps) {
                 try {
@@ -45,6 +53,17 @@ class GameVpnService : VpnService() {
         }
 
         return START_STICKY
+    }
+
+    private fun stopVpn() {
+        try {
+            vpnInterface?.close()
+            vpnInterface = null
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     private fun startForegroundNotification() {
@@ -70,10 +89,6 @@ class GameVpnService : VpnService() {
 
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            vpnInterface?.close()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        stopVpn()
     }
 }
