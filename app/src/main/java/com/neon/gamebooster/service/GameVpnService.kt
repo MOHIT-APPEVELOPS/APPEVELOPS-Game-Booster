@@ -23,15 +23,18 @@ class GameVpnService : VpnService() {
         val builder = Builder()
             .setSession("NeonGameVpn")
             .addAddress("10.0.0.2", 24)
-            .addDnsServer("1.1.1.1")
-            .addDnsServer("8.8.8.8")
+            .addRoute("0.0.0.0", 0) // Capture all IPv4 traffic into dummy VPN (Blocks Internet)
+            .addRoute("::", 0)       // Capture all IPv6 traffic into dummy VPN (Blocks Internet)
 
-        // Route internet ONLY for selected apps
-        for (pkg in selectedApps) {
-            try {
-                builder.addAllowedApplication(pkg)
-            } catch (e: Exception) {
-                e.printStackTrace()
+        // Selected apps ko VPN se Exclude kar rahe hain.
+        // Isse selected games ko direct high-speed internet milega aur baki saari apps ka internet BLOCK ho jayega!
+        if (selectedApps.isNotEmpty()) {
+            for (pkg in selectedApps) {
+                try {
+                    builder.addDisallowedApplication(pkg)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
 
@@ -49,7 +52,7 @@ class GameVpnService : VpnService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
-                "VPN Service",
+                "Game Isolation Service",
                 NotificationManager.IMPORTANCE_LOW
             )
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -57,8 +60,8 @@ class GameVpnService : VpnService() {
         }
 
         val notification: Notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("Neon Game Booster VPN")
-            .setContentText("Internet ping optimization active")
+            .setContentTitle("Neon Game Booster Active")
+            .setContentText("Background Internet Blocked • Game Priority Active")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .build()
 
