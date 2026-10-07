@@ -14,22 +14,24 @@ class GameAccessibilityService : AccessibilityService() {
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val currentPackageName = event.packageName?.toString() ?: return
 
-            // System UI aur apne app ke events ko ignore karein
             if (currentPackageName == packageName || currentPackageName.contains("systemui")) {
                 return
             }
 
             val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
             val selectedApps = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
+            val isVpnEnabled = prefs.getBoolean("enable_vpn", true)
+            val isCrosshairEnabled = prefs.getBoolean("enable_crosshair", true)
 
             if (selectedApps.isNotEmpty()) {
                 if (selectedApps.contains(currentPackageName)) {
-                    // Selected game active hai -> Start VPN & Crosshair
+                    // Selected Game Active -> Start ONLY enabled features
                     try {
-                        val vpnIntent = Intent(this, GameVpnService::class.java)
-                        startService(vpnIntent)
+                        if (isVpnEnabled) {
+                            startService(Intent(this, GameVpnService::class.java))
+                        }
 
-                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)) {
+                        if (isCrosshairEnabled && (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this))) {
                             val crosshairIntent = Intent(this, CrosshairService::class.java)
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                 ContextCompat.startForegroundService(this, crosshairIntent)
@@ -41,7 +43,7 @@ class GameAccessibilityService : AccessibilityService() {
                         e.printStackTrace()
                     }
                 } else {
-                    // Selected game band hua -> Explicitly stop VPN using ACTION_STOP_VPN & Crosshair
+                    // Game Closed -> Turn off both
                     try {
                         val stopVpnIntent = Intent(this, GameVpnService::class.java).apply {
                             action = GameVpnService.ACTION_STOP_VPN
