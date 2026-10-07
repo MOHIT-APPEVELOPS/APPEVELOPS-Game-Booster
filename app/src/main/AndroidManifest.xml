@@ -1,22 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+package com.appevelops.gamebooster // Aapka jo package name ho
 
-    <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:label="@string/app_name"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-    </application>
-
-</manifest>
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main) // Agar aapne layout banaya hai
+    }
+}
