@@ -17,12 +17,15 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.neon.gamebooster.R
 import com.neon.gamebooster.utils.CpuBoosterManager
+import rikka.shizuku.Shizuku
 
 class MainActivity : AppCompatActivity() {
 
     private val VPN_REQUEST_CODE = 100
     private val OVERLAY_REQUEST_CODE = 101
+    private val SHIZUKU_PERMISSION_REQUEST_CODE = 102
     private lateinit var rvSelectedGames: RecyclerView
+    private lateinit var tvStatus: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,7 +33,7 @@ class MainActivity : AppCompatActivity() {
 
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
 
-        val tvStatus = findViewById<TextView>(R.id.tvStatus)
+        tvStatus = findViewById(R.id.tvStatus)
         val btnSelectApps = findViewById<Button>(R.id.btnSelectApps)
         val btnToggleBoost = findViewById<Button>(R.id.btnToggleBoost)
         val switchVpn = findViewById<SwitchCompat>(R.id.switchVpn)
@@ -39,7 +42,7 @@ class MainActivity : AppCompatActivity() {
 
         rvSelectedGames.layoutManager = LinearLayoutManager(this)
 
-        tvStatus.text = "Shizuku & Booster: Ready"
+        updateShizukuStatus()
 
         // Load saved states for switches
         switchVpn.isChecked = prefs.getBoolean("enable_vpn", true)
@@ -76,24 +79,45 @@ class MainActivity : AppCompatActivity() {
 
         // Manual Boost Button
         btnToggleBoost.setOnClickListener {
-            try {
-                CpuBoosterManager.applyPerformanceMode()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-
-            if (!isAccessibilityServiceEnabled()) {
-                Toast.makeText(this, "Enable 'Neon Game Booster Service' in Accessibility Settings", Toast.LENGTH_LONG).show()
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            if (!CpuBoosterManager.isShizukuAvailableAndGranted()) {
+                requestShizukuPermission()
             } else {
-                Toast.makeText(this, "Booster Service Active!", Toast.LENGTH_SHORT).show()
+                try {
+                    CpuBoosterManager.applyPerformanceMode()
+                    Toast.makeText(this, "CPU Performance Mode & Deep Boost Applied!", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
     }
 
     override fun onResume() {
         super.onResume()
+        updateShizukuStatus()
         loadSelectedGames()
+    }
+
+    private fun updateShizukuStatus() {
+        if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
+            tvStatus.text = "Shizuku Engine: Active & Ready"
+        } else {
+            tvStatus.text = "Shizuku Engine: Not Connected / Permission Required"
+        }
+    }
+
+    private fun requestShizukuPermission() {
+        try {
+            if (Shizuku.pingBinder()) {
+                if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+                    Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE)
+                }
+            } else {
+                Toast.makeText(this, "Shizuku Service is not running on device!", Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Shizuku Integration Error", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun loadSelectedGames() {
@@ -114,11 +138,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         val adapter = SelectedGamesAdapter(list) { game ->
-            if (!isAccessibilityServiceEnabled()) {
-                Toast.makeText(this, "Please enable Neon Game Booster Accessibility Service", Toast.LENGTH_LONG).show()
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            if (!CpuBoosterManager.isShizukuAvailableAndGranted()) {
+                Toast.makeText(this, "Shizuku required for Silent Deep Cleanup!", Toast.LENGTH_LONG).show()
+                requestShizukuPermission()
             } else {
-                Toast.makeText(this, "Auto-Cleaning Background Apps...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Silent Shizuku Boosting System...", Toast.LENGTH_SHORT).show()
 
                 // 1. Perform Background App Kill, Storage/Cache Cleanup & Memory Boost
                 try {
@@ -144,14 +168,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
         rvSelectedGames.adapter = adapter
-    }
-
-    private fun isAccessibilityServiceEnabled(): Boolean {
-        val prefString = Settings.Secure.getString(
-            contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        )
-        return prefString?.contains(packageName) == true
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
