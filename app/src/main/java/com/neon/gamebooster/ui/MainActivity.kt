@@ -41,9 +41,11 @@ class MainActivity : AppCompatActivity() {
 
         tvStatus.text = "Shizuku & Booster: Ready"
 
+        // Load saved states for switches
         switchVpn.isChecked = prefs.getBoolean("enable_vpn", true)
         switchCrosshair.isChecked = prefs.getBoolean("enable_crosshair", true)
 
+        // VPN Switch Listener
         switchVpn.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_vpn", isChecked).apply()
             if (isChecked) {
@@ -54,6 +56,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Crosshair Switch Listener
         switchCrosshair.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_crosshair", isChecked).apply()
             if (isChecked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
@@ -66,10 +69,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // App Selection Button
         btnSelectApps.setOnClickListener {
             startActivity(Intent(this, AppListActivity::class.java))
         }
 
+        // Manual Boost Button
         btnToggleBoost.setOnClickListener {
             try {
                 CpuBoosterManager.applyPerformanceMode()
@@ -109,19 +114,28 @@ class MainActivity : AppCompatActivity() {
         }
 
         val adapter = SelectedGamesAdapter(list) { game ->
-            // Boost Performance before Launching
+            Toast.makeText(this, "Optimizing Memory & Cleaning System...", Toast.LENGTH_SHORT).show()
+
+            // 1. Perform Background App Kill, Storage/Cache Cleanup & Memory Boost
+            try {
+                CpuBoosterManager.autoCleanAndBoostSystem(this, game.packageName)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            // 2. Apply CPU Performance Mode
             try {
                 CpuBoosterManager.applyPerformanceMode()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
 
-            // Launch Game
+            // 3. Launch Selected Game
             val launchIntent = pm.getLaunchIntentForPackage(game.packageName)
             if (launchIntent != null) {
                 startActivity(launchIntent)
             } else {
-                Toast.makeText(this, "Unable to launch app", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Unable to launch game", Toast.LENGTH_SHORT).show()
             }
         }
         rvSelectedGames.adapter = adapter
@@ -133,5 +147,12 @@ class MainActivity : AppCompatActivity() {
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
         )
         return prefString?.contains(packageName) == true
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == VPN_REQUEST_CODE && resultCode == RESULT_OK) {
+            Toast.makeText(this, "VPN Permission Granted", Toast.LENGTH_SHORT).show()
+        }
     }
 }
