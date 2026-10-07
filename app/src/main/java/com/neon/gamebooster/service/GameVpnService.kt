@@ -15,6 +15,7 @@ class GameVpnService : VpnService() {
     private var vpnInterface: ParcelFileDescriptor? = null
 
     companion object {
+        const val ACTION_START_VPN = "com.neon.gamebooster.START_VPN"
         const val ACTION_STOP_VPN = "com.neon.gamebooster.STOP_VPN"
     }
 
@@ -43,7 +44,7 @@ class GameVpnService : VpnService() {
 
         val notification: Notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Neon Game Booster VPN")
-            .setContentText("Ping Isolation Active - Gaming DNS Enabled")
+            .setContentText("Game Ping Isolation Active")
             .setSmallIcon(android.R.drawable.ic_menu_share)
             .setOngoing(true)
             .build()
@@ -57,8 +58,8 @@ class GameVpnService : VpnService() {
                 val builder = Builder()
                 builder.addAddress("10.0.0.2", 24)
                 builder.addRoute("0.0.0.0", 0)
-                builder.addDnsServer("1.1.1.1") // Cloudflare Low-Latency DNS
-                builder.addDnsServer("8.8.8.8") // Google DNS Backup
+                builder.addDnsServer("1.1.1.1") // Cloudflare DNS
+                builder.addDnsServer("8.8.8.8") // Google DNS
                 builder.setSession("NeonGameBoosterVPN")
                 builder.setMtu(1500)
                 
