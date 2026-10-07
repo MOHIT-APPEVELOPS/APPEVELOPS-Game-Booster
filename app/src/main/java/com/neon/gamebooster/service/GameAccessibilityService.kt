@@ -14,7 +14,7 @@ class GameAccessibilityService : AccessibilityService() {
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val currentPackageName = event.packageName?.toString() ?: return
 
-            // System UI aur apne app ke state changes ignore karein
+            // System UI aur apne app ke events ko ignore karein
             if (currentPackageName == packageName || currentPackageName.contains("systemui")) {
                 return
             }
@@ -24,12 +24,11 @@ class GameAccessibilityService : AccessibilityService() {
 
             if (selectedApps.isNotEmpty()) {
                 if (selectedApps.contains(currentPackageName)) {
-                    // Selected game screen par active hai -> Start VPN & Crosshair
+                    // Selected game active hai -> Start VPN & Crosshair
                     try {
                         val vpnIntent = Intent(this, GameVpnService::class.java)
                         startService(vpnIntent)
 
-                        // Check Overlay permission before starting crosshair automatically
                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)) {
                             val crosshairIntent = Intent(this, CrosshairService::class.java)
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -42,9 +41,13 @@ class GameAccessibilityService : AccessibilityService() {
                         e.printStackTrace()
                     }
                 } else {
-                    // Game close ho gaya ya background mein gaya -> Stop BOTH VPN & Crosshair
+                    // Selected game band hua -> Explicitly stop VPN using ACTION_STOP_VPN & Crosshair
                     try {
-                        stopService(Intent(this, GameVpnService::class.java))
+                        val stopVpnIntent = Intent(this, GameVpnService::class.java).apply {
+                            action = GameVpnService.ACTION_STOP_VPN
+                        }
+                        startService(stopVpnIntent)
+
                         stopService(Intent(this, CrosshairService::class.java))
                     } catch (e: Exception) {
                         e.printStackTrace()
