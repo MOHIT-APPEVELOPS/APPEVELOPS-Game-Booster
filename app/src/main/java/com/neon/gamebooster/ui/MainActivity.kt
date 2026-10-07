@@ -58,55 +58,37 @@ class MainActivity : AppCompatActivity() {
         switchTransitionAnim.isChecked = prefs.getBoolean("enable_transition_anim", true)
         switchAnimatorAnim.isChecked = prefs.getBoolean("enable_animator_anim", true)
 
-        // VPN Switch Listener
+        // VPN Switch Listener (Saves preference without forcing global permanent start outside games)
         switchVpn.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_vpn", isChecked).apply()
-            if (isChecked) {
-                startVpnService()
-            } else {
-                val intent = Intent(this, GameVpnService::class.java).apply { action = "STOP" }
-                startService(intent)
-            }
         }
 
-        // Crosshair Switch Listener
+        // Crosshair Switch Listener (Saves preference)
         switchCrosshair.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_crosshair", isChecked).apply()
-            if (isChecked) {
-                startCrosshairService()
-            } else {
-                stopService(Intent(this, CrosshairService::class.java))
+            if (isChecked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+                Toast.makeText(this, "Allow 'Display over other apps' permission", Toast.LENGTH_LONG).show()
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                startActivityForResult(intent, OVERLAY_REQUEST_CODE)
             }
         }
 
         // Window Animation Scale Switch
         switchWindowAnim.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_window_anim", isChecked).apply()
-            if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
-                CpuBoosterManager.setWindowAnimationScale(isChecked)
-            } else if (isChecked) {
-                requestShizukuPermission()
-            }
         }
 
         // Transition Animation Scale Switch
         switchTransitionAnim.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_transition_anim", isChecked).apply()
-            if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
-                CpuBoosterManager.setTransitionAnimationScale(isChecked)
-            } else if (isChecked) {
-                requestShizukuPermission()
-            }
         }
 
         // Animator Duration Scale Switch
         switchAnimatorAnim.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_animator_anim", isChecked).apply()
-            if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
-                CpuBoosterManager.setAnimatorDurationScale(isChecked)
-            } else if (isChecked) {
-                requestShizukuPermission()
-            }
         }
 
         // App Selection Button
@@ -210,13 +192,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         val adapter = SelectedGamesAdapter(list) { game ->
-            if (!CpuBoosterManager.isShizukuAvailableAndGranted()) {
+            if (!CpuBoosterManager.isShizukuAvailableAndGranted() && prefs.getBoolean("enable_window_anim", true)) {
                 Toast.makeText(this, "Shizuku required for Custom Animation Speed Optimization!", Toast.LENGTH_LONG).show()
                 requestShizukuPermission()
             } else {
                 Toast.makeText(this, "Applying Settings & Launching Game...", Toast.LENGTH_SHORT).show()
 
-                // 1. Start active VPN & Crosshair services if switches are ON
+                // 1. Start active VPN & Crosshair services if switches are ON specifically for this game session
                 if (prefs.getBoolean("enable_vpn", true)) {
                     startVpnService()
                 }
@@ -261,7 +243,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == VPN_REQUEST_CODE && resultCode == RESULT_OK) {
+        if (requestCode == VPN_REQUEST_CODE) {
             val intent = Intent(this, GameVpnService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(intent)
