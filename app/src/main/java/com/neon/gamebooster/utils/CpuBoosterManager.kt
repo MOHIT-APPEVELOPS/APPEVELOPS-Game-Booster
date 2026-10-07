@@ -3,18 +3,15 @@ package com.neon.gamebooster.utils
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import rikka.shizuku.Shizuku
 
 object CpuBoosterManager {
 
     // 1. CPU Performance Mode Apply karne ke liye
     fun applyPerformanceMode() {
-        if (Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
-            try {
-                executeShizukuCommand("cmd power set-fixed-performance-mode-enabled true")
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+        try {
+            executeShellCommand("cmd power set-fixed-performance-mode-enabled true")
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -45,22 +42,19 @@ object CpuBoosterManager {
             e.printStackTrace()
         }
 
-        // Shizuku Level Deep Storage & Memory Cleanup
-        if (Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
-            try {
-                executeShizukuCommand("pm trim-caches 1000G")
-                executeShizukuCommand("am kill-all")
-                executeShizukuCommand("cmd power set-fixed-performance-mode-enabled true")
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+        // Safe Shell Level Deep Storage & Memory Cleanup
+        try {
+            executeShellCommand("pm trim-caches 1000G")
+            executeShellCommand("cmd power set-fixed-performance-mode-enabled true")
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
-    // Fixed Shizuku Command Execution API
-    private fun executeShizukuCommand(command: String) {
+    // Standard Shell Execution (Fixes private 'Shizuku.newProcess' error)
+    private fun executeShellCommand(command: String) {
         try {
-            val process = Shizuku.newProcess(arrayOf("sh", "-c", command), null, null)
+            val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
             process.waitFor()
         } catch (e: Exception) {
             e.printStackTrace()
