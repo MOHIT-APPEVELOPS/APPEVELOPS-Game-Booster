@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -8,6 +9,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
 
     <application
         android:allowBackup="true"
@@ -27,7 +29,13 @@
             </intent-filter>
         </activity>
 
-        <!-- Services -->
+        <!-- App Selection Activity -->
+        <activity
+            android:name=".ui.AppListActivity"
+            android:exported="false"
+            android:label="Select Apps" />
+
+        <!-- Game VPN Service -->
         <service
             android:name=".service.GameVpnService"
             android:permission="android.permission.BIND_VPN_SERVICE"
@@ -38,22 +46,11 @@
             </intent-filter>
         </service>
 
+        <!-- Crosshair Overlay Service -->
         <service
             android:name=".service.CrosshairService"
             android:exported="false"
             android:foregroundServiceType="specialUse" />
-
-        <service
-            android:name=".service.GameAccessibilityService"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
-        </service>
 
     </application>
 
