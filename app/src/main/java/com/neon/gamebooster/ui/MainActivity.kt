@@ -19,29 +19,47 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val btnToggleBoost = findViewById<Button>(R.id.btnToggleBoost)
-        val btnCrosshairSettings = findViewById<Button>(R.id.btnCrosshairSettings)
+        // Safe-call (?.) use kiya hai taaki agar button na mile toh app crash na ho
+        val btnToggleBoost = findViewById<Button?>(R.id.btnToggleBoost)
+        val btnCrosshairSettings = findViewById<Button?>(R.id.btnCrosshairSettings)
 
-        btnToggleBoost.setOnClickListener {
-            CpuBoosterManager.applyPerformanceMode()
-            
-            val vpnIntent = VpnService.prepare(this)
-            if (vpnIntent != null) {
-                startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
-            } else {
-                startVpnService()
+        btnToggleBoost?.setOnClickListener {
+            try {
+                CpuBoosterManager.applyPerformanceMode()
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
+            
+            try {
+                val vpnIntent = VpnService.prepare(this)
+                if (vpnIntent != null) {
+                    startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
+                } else {
+                    startVpnService()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            
             Toast.makeText(this, "Optimization Triggered!", Toast.LENGTH_SHORT).show()
         }
 
-        btnCrosshairSettings.setOnClickListener {
-            startService(Intent(this, CrosshairService::class.java))
-            Toast.makeText(this, "Crosshair Overlay Enabled", Toast.LENGTH_SHORT).show()
+        btnCrosshairSettings?.setOnClickListener {
+            try {
+                startService(Intent(this, CrosshairService::class.java))
+                Toast.makeText(this, "Crosshair Overlay Enabled", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this, "Error starting service", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     private fun startVpnService() {
-        startService(Intent(this, GameVpnService::class.java))
+        try {
+            startService(Intent(this, GameVpnService::class.java))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
