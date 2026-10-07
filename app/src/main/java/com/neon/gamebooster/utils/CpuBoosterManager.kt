@@ -7,11 +7,10 @@ import rikka.shizuku.Shizuku
 
 object CpuBoosterManager {
 
-    // 1. CPU Performance Mode Apply karne ke liye (Shizuku)
+    // 1. CPU Performance Mode Apply karne ke liye
     fun applyPerformanceMode() {
         if (Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
             try {
-                // Fixed performance mode enable karna
                 executeShizukuCommand("cmd power set-fixed-performance-mode-enabled true")
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -58,7 +57,7 @@ object CpuBoosterManager {
         }
     }
 
-    // Fixed Helper method to execute Shizuku shell commands
+    // Fixed Shizuku Command Execution API
     private fun executeShizukuCommand(command: String) {
         try {
             val process = Shizuku.newProcess(arrayOf("sh", "-c", command), null, null)
