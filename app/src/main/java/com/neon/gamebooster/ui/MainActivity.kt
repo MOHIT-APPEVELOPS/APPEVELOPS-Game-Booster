@@ -114,28 +114,33 @@ class MainActivity : AppCompatActivity() {
         }
 
         val adapter = SelectedGamesAdapter(list) { game ->
-            Toast.makeText(this, "Optimizing Memory & Cleaning System...", Toast.LENGTH_SHORT).show()
-
-            // 1. Perform Background App Kill, Storage/Cache Cleanup & Memory Boost
-            try {
-                CpuBoosterManager.autoCleanAndBoostSystem(this, game.packageName)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-
-            // 2. Apply CPU Performance Mode
-            try {
-                CpuBoosterManager.applyPerformanceMode()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-
-            // 3. Launch Selected Game
-            val launchIntent = pm.getLaunchIntentForPackage(game.packageName)
-            if (launchIntent != null) {
-                startActivity(launchIntent)
+            if (!isAccessibilityServiceEnabled()) {
+                Toast.makeText(this, "Please enable Neon Game Booster Accessibility Service", Toast.LENGTH_LONG).show()
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             } else {
-                Toast.makeText(this, "Unable to launch game", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Auto-Cleaning Background Apps...", Toast.LENGTH_SHORT).show()
+
+                // 1. Perform Background App Kill, Storage/Cache Cleanup & Memory Boost
+                try {
+                    CpuBoosterManager.autoCleanAndBoostSystem(this, game.packageName)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                // 2. Apply CPU Performance Mode
+                try {
+                    CpuBoosterManager.applyPerformanceMode()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                // 3. Launch Selected Game
+                val launchIntent = pm.getLaunchIntentForPackage(game.packageName)
+                if (launchIntent != null) {
+                    startActivity(launchIntent)
+                } else {
+                    Toast.makeText(this, "Unable to launch game", Toast.LENGTH_SHORT).show()
+                }
             }
         }
         rvSelectedGames.adapter = adapter
