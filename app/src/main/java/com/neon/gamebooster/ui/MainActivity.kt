@@ -37,7 +37,6 @@ class MainActivity : AppCompatActivity() {
 
         tvStatus?.text = "Shizuku & VPN: Ready"
 
-        // App Picker activity kholne ke liye
         btnSelectApps?.setOnClickListener {
             startActivity(Intent(this, AppListActivity::class.java))
         }
@@ -49,6 +48,12 @@ class MainActivity : AppCompatActivity() {
                 e.printStackTrace()
             }
             
+            // Check Accessibility permission for auto-disconnect on exit
+            if (!isAccessibilityServiceEnabled()) {
+                Toast.makeText(this, "Please enable Game Booster Accessibility Service for Auto-Disconnect", Toast.LENGTH_LONG).show()
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
+
             try {
                 val vpnIntent = VpnService.prepare(this)
                 if (vpnIntent != null) {
@@ -60,11 +65,10 @@ class MainActivity : AppCompatActivity() {
                 e.printStackTrace()
             }
             
-            Toast.makeText(this, "Optimization & VPN Started!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Optimization & Auto-VPN Active!", Toast.LENGTH_SHORT).show()
         }
 
         btnCrosshairSettings?.setOnClickListener {
-            // Check Overlay Permission first to prevent crash
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
                 Toast.makeText(this, "Please allow 'Display over other apps' permission", Toast.LENGTH_LONG).show()
                 val intent = Intent(
@@ -78,6 +82,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun isAccessibilityServiceEnabled(): Boolean {
+        val prefString = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        )
+        return prefString?.contains(packageName) == true
+    }
+
     private fun startCrosshairService() {
         try {
             val intent = Intent(this, CrosshairService::class.java)
@@ -89,7 +101,6 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Crosshair Overlay Enabled", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "Error starting Crosshair", Toast.LENGTH_SHORT).show()
         }
     }
 
