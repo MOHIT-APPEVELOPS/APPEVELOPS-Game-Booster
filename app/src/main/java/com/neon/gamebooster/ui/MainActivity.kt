@@ -1,11 +1,16 @@
 package com.neon.gamebooster.ui
 
 import android.content.Intent
+import android.net.Uri
 import android.net.VpnService
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.neon.gamebooster.R
 import com.neon.gamebooster.service.CrosshairService
 import com.neon.gamebooster.service.GameVpnService
@@ -14,6 +19,7 @@ import com.neon.gamebooster.utils.CpuBoosterManager
 class MainActivity : AppCompatActivity() {
 
     private val VPN_REQUEST_CODE = 100
+    private val OVERLAY_REQUEST_CODE = 101
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,8 +30,17 @@ class MainActivity : AppCompatActivity() {
             e.printStackTrace()
         }
 
+        val tvStatus = findViewById<TextView?>(R.id.tvStatus)
+        val btnSelectApps = findViewById<Button?>(R.id.btnSelectApps)
         val btnToggleBoost = findViewById<Button?>(R.id.btnToggleBoost)
         val btnCrosshairSettings = findViewById<Button?>(R.id.btnCrosshairSettings)
+
+        tvStatus?.text = "Shizuku & VPN: Ready"
+
+        // App Picker activity kholne ke liye
+        btnSelectApps?.setOnClickListener {
+            startActivity(Intent(this, AppListActivity::class.java))
+        }
 
         btnToggleBoost?.setOnClickListener {
             try {
@@ -45,22 +60,47 @@ class MainActivity : AppCompatActivity() {
                 e.printStackTrace()
             }
             
-            Toast.makeText(this, "Optimization Triggered!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Optimization & VPN Started!", Toast.LENGTH_SHORT).show()
         }
 
         btnCrosshairSettings?.setOnClickListener {
-            try {
-                startService(Intent(this, CrosshairService::class.java))
-                Toast.makeText(this, "Crosshair Overlay Enabled", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                Toast.makeText(this, "Error starting service", Toast.LENGTH_SHORT).show()
+            // Check Overlay Permission first to prevent crash
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+                Toast.makeText(this, "Please allow 'Display over other apps' permission", Toast.LENGTH_LONG).show()
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                startActivityForResult(intent, OVERLAY_REQUEST_CODE)
+            } else {
+                startCrosshairService()
             }
+        }
+    }
+
+    private fun startCrosshairService() {
+        try {
+            val intent = Intent(this, CrosshairService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ContextCompat.startForegroundService(this, intent)
+            } else {
+                startService(intent)
+            }
+            Toast.makeText(this, "Crosshair Overlay Enabled", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Error starting Crosshair", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun startVpnService() {
         try {
-            startService(Intent(this, GameVpnService::class.java))
+            val intent = Intent(this, GameVpnService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ContextCompat.startForegroundService(this, intent)
+            } else {
+                startService(intent)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -70,6 +110,10 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == VPN_REQUEST_CODE && resultCode == RESULT_OK) {
             startVpnService()
+        } else if (requestCode == OVERLAY_REQUEST_CODE) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
+                startCrosshairService()
+            }
         }
     }
 }
