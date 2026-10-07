@@ -16,6 +16,8 @@ import androidx.appcompat.widget.SwitchCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.neon.gamebooster.R
+import com.neon.gamebooster.service.CrosshairService
+import com.neon.gamebooster.service.GameVpnService
 import com.neon.gamebooster.utils.CpuBoosterManager
 import rikka.shizuku.Shizuku
 
@@ -24,6 +26,7 @@ class MainActivity : AppCompatActivity() {
     private val VPN_REQUEST_CODE = 100
     private val OVERLAY_REQUEST_CODE = 101
     private val SHIZUKU_PERMISSION_REQUEST_CODE = 102
+    
     private lateinit var rvSelectedGames: RecyclerView
     private lateinit var tvStatus: TextView
 
@@ -36,13 +39,14 @@ class MainActivity : AppCompatActivity() {
         tvStatus = findViewById(R.id.tvStatus)
         val btnSelectApps = findViewById<Button>(R.id.btnSelectApps)
         val btnToggleBoost = findViewById<Button>(R.id.btnToggleBoost)
+        
         val switchVpn = findViewById<SwitchCompat>(R.id.switchVpn)
         val switchCrosshair = findViewById<SwitchCompat>(R.id.switchCrosshair)
         val switchWindowAnim = findViewById<SwitchCompat>(R.id.switchWindowAnim)
         val switchTransitionAnim = findViewById<SwitchCompat>(R.id.switchTransitionAnim)
         val switchAnimatorAnim = findViewById<SwitchCompat>(R.id.switchAnimatorAnim)
+        
         rvSelectedGames = findViewById(R.id.rvSelectedGames)
-
         rvSelectedGames.layoutManager = LinearLayoutManager(this)
 
         updateShizukuStatus()
@@ -58,23 +62,20 @@ class MainActivity : AppCompatActivity() {
         switchVpn.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_vpn", isChecked).apply()
             if (isChecked) {
-                val vpnIntent = VpnService.prepare(this)
-                if (vpnIntent != null) {
-                    startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
-                }
+                startVpnService()
+            } else {
+                val intent = Intent(this, GameVpnService::class.java).apply { action = "STOP" }
+                startService(intent)
             }
         }
 
         // Crosshair Switch Listener
         switchCrosshair.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_crosshair", isChecked).apply()
-            if (isChecked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-                Toast.makeText(this, "Allow 'Display over other apps' permission", Toast.LENGTH_LONG).show()
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")
-                )
-                startActivityForResult(intent, OVERLAY_REQUEST_CODE)
+            if (isChecked) {
+                startCrosshairService()
+            } else {
+                stopService(Intent(this, CrosshairService::class.java))
             }
         }
 
@@ -131,6 +132,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun startVpnService() {
+        val vpnIntent = VpnService.prepare(this)
+        if (vpnIntent != null) {
+            startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
+        } else {
+            val intent = Intent(this, GameVpnService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        }
+    }
+
+    private fun startCrosshairService() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            Toast.makeText(this, "Allow 'Display over other apps' permission", Toast.LENGTH_LONG).show()
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")
+            )
+            startActivityForResult(intent, OVERLAY_REQUEST_CODE)
+        } else {
+            val intent = Intent(this, CrosshairService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         updateShizukuStatus()
@@ -181,16 +214,24 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Shizuku required for Custom Animation Speed Optimization!", Toast.LENGTH_LONG).show()
                 requestShizukuPermission()
             } else {
-                Toast.makeText(this, "Applying Animation Scales & Launching Game...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Applying Settings & Launching Game...", Toast.LENGTH_SHORT).show()
 
-                // 1. Perform Background App Kill & Cleanup
+                // 1. Start active VPN & Crosshair services if switches are ON
+                if (prefs.getBoolean("enable_vpn", true)) {
+                    startVpnService()
+                }
+                if (prefs.getBoolean("enable_crosshair", true)) {
+                    startCrosshairService()
+                }
+
+                // 2. Perform Background App Kill & Cleanup
                 try {
                     CpuBoosterManager.autoCleanAndBoostSystem(this, game.packageName)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
 
-                // 2. Apply Animation Scales individually based on user toggle preferences
+                // 3. Apply Animation Scales individually based on user toggle preferences
                 try {
                     CpuBoosterManager.setWindowAnimationScale(prefs.getBoolean("enable_window_anim", true))
                     CpuBoosterManager.setTransitionAnimationScale(prefs.getBoolean("enable_transition_anim", true))
@@ -199,14 +240,14 @@ class MainActivity : AppCompatActivity() {
                     e.printStackTrace()
                 }
 
-                // 3. Apply CPU Performance Mode
+                // 4. Apply CPU Performance Mode
                 try {
                     CpuBoosterManager.applyPerformanceMode()
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
 
-                // 4. Launch Game
+                // 5. Launch Game
                 val launchIntent = pm.getLaunchIntentForPackage(game.packageName)
                 if (launchIntent != null) {
                     startActivity(launchIntent)
@@ -221,7 +262,21 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == VPN_REQUEST_CODE && resultCode == RESULT_OK) {
-            Toast.makeText(this, "VPN Permission Granted", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, GameVpnService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            Toast.makeText(this, "VPN Ping Isolation Active", Toast.LENGTH_SHORT).show()
+        } else if (requestCode == OVERLAY_REQUEST_CODE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
+            val intent = Intent(this, CrosshairService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            Toast.makeText(this, "Crosshair Overlay Active", Toast.LENGTH_SHORT).show()
         }
     }
 }
