@@ -15,7 +15,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+        android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
 
         <!-- Main Activity -->
         <activity
@@ -27,7 +27,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Game VPN Service -->
+        <!-- Services -->
         <service
             android:name=".service.GameVpnService"
             android:permission="android.permission.BIND_VPN_SERVICE"
@@ -38,13 +38,11 @@
             </intent-filter>
         </service>
 
-        <!-- Crosshair Overlay Service -->
         <service
             android:name=".service.CrosshairService"
             android:exported="false"
             android:foregroundServiceType="specialUse" />
 
-        <!-- Accessibility Service -->
         <service
             android:name=".service.GameAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
