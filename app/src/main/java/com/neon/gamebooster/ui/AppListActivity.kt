@@ -28,7 +28,7 @@ class AppListActivity : AppCompatActivity() {
 
         val pm = packageManager
         val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 }
+            .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 || (it.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0 }
             .sortedBy { pm.getApplicationLabel(it).toString() }
 
         val appNames = apps.map { pm.getApplicationLabel(it).toString() }
@@ -54,7 +54,7 @@ class AppListActivity : AppCompatActivity() {
             }
 
             prefs.edit().putStringSet("selected_apps", selectedPackages).apply()
-            Toast.makeText(this, "Apps Saved for VPN Isolation!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Selected Games Saved Successfully!", Toast.LENGTH_SHORT).show()
             finish()
         }
     }
