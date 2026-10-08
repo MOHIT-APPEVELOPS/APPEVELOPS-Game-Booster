@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.view.accessibility.AccessibilityManager
 import android.widget.Button
 import android.widget.Switch
 import android.widget.TextView
@@ -121,7 +122,7 @@ class MainActivity : AppCompatActivity() {
         if (isFirstLaunch) {
             AlertDialog.Builder(this)
                 .setTitle("Permissions Required")
-                .setMessage("Neon Game Booster needs Display Overlay, Battery Optimization, Notification, and VPN permissions to optimize your gameplay effectively.")
+                .setMessage("Neon Game Booster needs Display Overlay, Battery Optimization, Notification, VPN, and Accessibility permissions to optimize your gameplay effectively.")
                 .setPositiveButton("Accept") { _, _ ->
                     prefs.edit().putBoolean("is_first_launch", false).apply()
                     requestAllAppPermissions()
@@ -151,6 +152,28 @@ class MainActivity : AppCompatActivity() {
         }
 
         checkAndRequestVpnPermission()
+
+        // Accessibility Service check & prompt
+        if (!isAccessibilityServiceEnabled()) {
+            Toast.makeText(this, "Please enable Accessibility Service for DND & Auto-Cleaner", Toast.LENGTH_LONG).show()
+            try {
+                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                startActivity(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun isAccessibilityServiceEnabled(): Boolean {
+        val am = getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+        val enabledServices = am.getEnabledAccessibilityServiceList(android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+        for (service in enabledServices) {
+            if (service.resolveInfo.serviceInfo.packageName == packageName) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun checkAndRequestVpnPermission() {
@@ -181,7 +204,7 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, "VPN Permission Denied", Toast.LENGTH_SHORT).show()
                 }
             }
-            OVERLAY_REQUEST_CODE -> { // Fixed from OVERLAY_RESULT_CODE_FIX to OVERLAY_REQUEST_CODE
+            OVERLAY_REQUEST_CODE -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
                     Toast.makeText(this, "Overlay Permission Granted", Toast.LENGTH_SHORT).show()
                 } else {
@@ -247,24 +270,50 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateShizukuStatus() {
-        if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
-            tvStatus.text = "Shizuku Engine: Connected"
-        } else {
-            tvStatus.text = "Shizuku Engine: Not Connected"
+        try {
+            if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
+                tvStatus.text = "Shizuku Engine: Connected"
+                tvStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_dark))
+            } else {
+                tvStatus.text = "Shizuku Engine: Disconnected"
+                tvStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark))
+            }
+        } catch (e: Exception) {
+            tvStatus.text = "Shizuku Engine: Not Installed"
+            tvStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark))
         }
     }
 
     private fun requestShizukuPermission() {
         try {
+            if (!isPackageInstalled("moe.shizuku.privileged.api", packageManager)) {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=moe.shizuku.privileged.api"))
+                startActivity(intent)
+                Toast.makeText(this, "Please install Shizuku from Play Store", Toast.LENGTH_LONG).show()
+                return
+            }
             if (Shizuku.pingBinder()) {
                 if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
                     Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE)
+                } else {
+                    Toast.makeText(this, "Shizuku is already connected!", Toast.LENGTH_SHORT).show()
                 }
             } else {
-                Toast.makeText(this, "Shizuku is not running!", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Shizuku service is not running!", Toast.LENGTH_LONG).show()
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "Shizuku Error", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Shizuku Error: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun isPackageInstalled(packageName: String, packageManager: PackageManager): Boolean {
+        return try {
+            packageManager.getPackageInfo(packageName, 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        } catch (e: Exception) {
+            false
         }
     }
 }
