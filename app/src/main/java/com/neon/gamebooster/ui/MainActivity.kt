@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
 
         tvStatus = findViewById(R.id.tvStatus)
-        tvDevicePerfInfo = findViewById(R.id.tvDevicePerfInfo) // UI mein device performance show karne ke liye (Optional view)
+        tvDevicePerfInfo = findViewById(R.id.tvDevicePerfInfo)
         
         val btnSelectApps = findViewById<Button>(R.id.btnSelectApps)
         val btnToggleBoost = findViewById<Button>(R.id.btnToggleBoost)
@@ -57,7 +57,6 @@ class MainActivity : AppCompatActivity() {
         updateShizukuStatus()
         updateDevicePerformanceDisplay()
 
-        // Load saved states for switches
         switchVpn.isChecked = prefs.getBoolean("enable_vpn", true)
         switchCrosshair.isChecked = prefs.getBoolean("enable_crosshair", true)
         switchWindowAnim.isChecked = prefs.getBoolean("enable_window_anim", true)
@@ -73,12 +72,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // VPN Switch Listener
         switchVpn.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_vpn", isChecked).apply()
         }
 
-        // Crosshair Switch Listener
         switchCrosshair.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_crosshair", isChecked).apply()
             if (isChecked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
@@ -91,27 +88,22 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Window Animation Scale Switch
         switchWindowAnim.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_window_anim", isChecked).apply()
         }
 
-        // Transition Animation Scale Switch
         switchTransitionAnim.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_transition_anim", isChecked).apply()
         }
 
-        // Animator Duration Scale Switch
         switchAnimatorAnim.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_animator_anim", isChecked).apply()
         }
 
-        // App Selection Button
         btnSelectApps.setOnClickListener {
             startActivity(Intent(this, AppListActivity::class.java))
         }
 
-        // Manual Boost Button
         btnToggleBoost.setOnClickListener {
             if (!CpuBoosterManager.isShizukuAvailableAndGranted()) {
                 requestShizukuPermission()
@@ -240,6 +232,70 @@ class MainActivity : AppCompatActivity() {
         val adapter = SelectedGamesAdapter(list) { game ->
             if (!CpuBoosterManager.isShizukuAvailableAndGranted() && prefs.getBoolean("enable_window_anim", true)) {
                 Toast.makeText(this, "Shizuku required for Custom Animation Speed Optimization!", Toast.LENGTH_LONG).show()
+                requestShizukuPermission()
+            } else {
+                Toast.makeText(this, "Applying Settings & Launching Game...", Toast.LENGTH_SHORT).show()
+
+                if (prefs.getBoolean("enable_vpn", true)) {
+                    startVpnService()
+                }
+                if (prefs.getBoolean("enable_crosshair", true)) {
+                    startCrosshairService()
+                }
+
+                try {
+                    CpuBoosterManager.autoCleanAndBoostSystem(this, game.packageName)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                try {
+                    CpuBoosterManager.setWindowAnimationScale(prefs.getBoolean("enable_window_anim", true))
+                    CpuBoosterManager.setTransitionAnimationScale(prefs.getBoolean("enable_transition_anim", true))
+                    CpuBoosterManager.setAnimatorDurationScale(prefs.getBoolean("enable_animator_anim", true))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                try {
+                    CpuBoosterManager.applyPerformanceMode()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                val launchIntent = pm.getLaunchIntentForPackage(game.packageName)
+                if (launchIntent != null) {
+                    startActivity(launchIntent)
+                } else {
+                    Toast.makeText(this, "Unable to launch game", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        rvSelectedGames.adapter = adapter
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == VPN_REQUEST_CODE) {
+            val intent = Intent(this, GameVpnService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            Toast.makeText(this, "VPN Ping Isolation Active", Toast.LENGTH_SHORT).show()
+        } else if (requestCode == OVERLAY_REQUEST_CODE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
+            val intent = Intent(this, CrosshairService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            Toast.makeText(this, "Crosshair Overlay Active", Toast.LENGTH_SHORT).show()
+        }
+    }
+}
+Animation Speed Optimization!", Toast.LENGTH_LONG).show()
                 requestShizukuPermission()
             } else {
                 Toast.makeText(this, "Applying Settings & Launching Game...", Toast.LENGTH_SHORT).show()
