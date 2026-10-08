@@ -3,6 +3,7 @@ package com.neon.gamebooster.ui
 import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Drawable
+import android.net.VpnService
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,6 +12,7 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -27,6 +29,21 @@ data class SelectedAppModel(
 )
 
 class SelectedAppsActivity : AppCompatActivity() {
+
+    // VPN Permission Launcher to handle system dialog seamlessly
+    private val vpnPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val vpnIntent = Intent(this, GameVpnService::class.java).apply {
+                action = GameVpnService.ACTION_START_VPN
+            }
+            startService(vpnIntent)
+            Toast.makeText(this, "VPN Connected Successfully!", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "VPN Permission Denied", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,12 +80,19 @@ class SelectedAppsActivity : AppCompatActivity() {
 
     private fun startBoosterServicesAndLaunch(packageName: String, prefs: android.content.SharedPreferences) {
         try {
-            // 1. Start VPN if enabled
+            // 1. Start VPN with Permission Check
             if (prefs.getBoolean("enable_vpn", false)) {
-                val vpnIntent = Intent(this, GameVpnService::class.java).apply {
-                    action = GameVpnService.ACTION_START_VPN
+                val vpnPrepareIntent = VpnService.prepare(this)
+                if (vpnPrepareIntent != null) {
+                    // Agar permission nahi mili hai toh system popup launch karega
+                    vpnPermissionLauncher.launch(vpnPrepareIntent)
+                } else {
+                    // Permission pehle se granted hai, direct start karo
+                    val vpnIntent = Intent(this, GameVpnService::class.java).apply {
+                        action = GameVpnService.ACTION_START_VPN
+                    }
+                    startService(vpnIntent)
                 }
-                startService(vpnIntent)
             }
 
             // 2. Start Crosshair if enabled
