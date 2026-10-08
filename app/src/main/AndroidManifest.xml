@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.neon.gamebooster">
 
-    <!-- आवश्यक परमिशंस -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.BIND_VPN_SERVICE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
@@ -16,7 +15,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.GameBooster">
 
-        <!-- मुख्य गतिविधि (MainActivity) -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true">
@@ -26,10 +24,22 @@
             </intent-filter>
         </activity>
 
-        <!-- ऐप चयन गतिविधि -->
         <activity android:name=".ui.AppListActivity" />
-
-        <!-- एनिमेशन सेटिंग्स सब-स्क्रीन -->
         <activity android:name=".ui.AnimationSettingsActivity" />
+        <activity android:name=".ui.DndSettingsActivity" />
 
-        <!-- DND सेट
+        <service
+            android:name=".service.GameVpnService"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".service.CrosshairService"
+            android:exported="false" />
+
+    </application>
+</manifest>
