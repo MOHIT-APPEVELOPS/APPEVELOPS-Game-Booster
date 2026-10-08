@@ -5,8 +5,11 @@ import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Spinner
 import android.widget.Switch
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.neon.gamebooster.R
+import com.neon.gamebooster.utils.CpuBoosterManager
+import rikka.shizuku.Shizuku
 
 class AnimationSettingsActivity : AppCompatActivity() {
 
@@ -51,11 +54,46 @@ class AnimationSettingsActivity : AppCompatActivity() {
         val spinnerAnimator = findViewById<Spinner>(R.id.spinnerAnimatorAnim)
 
         if (spinnerWindow != null && spinnerTransition != null && spinnerAnimator != null) {
+            val winScaleStr = scales[spinnerWindow.selectedItemPosition]
+            val transScaleStr = scales[spinnerTransition.selectedItemPosition]
+            val animScaleStr = scales[spinnerAnimator.selectedItemPosition]
+
             prefs.edit()
-                .putString("scale_window", scales[spinnerWindow.selectedItemPosition])
-                .putString("scale_transition", scales[spinnerTransition.selectedItemPosition])
-                .putString("scale_animator", scales[spinnerAnimator.selectedItemPosition])
+                .putString("scale_window", winScaleStr)
+                .putString("scale_transition", transScaleStr)
+                .putString("scale_animator", animScaleStr)
                 .apply()
+
+            // Apply scales via Shizuku if enabled
+            val isAnimEnabled = prefs.getBoolean("enable_animation_settings", true)
+            if (isAnimEnabled) {
+                val winFloat = winScaleStr.replace("x", "").toFloatOrNull() ?: 1.0f
+                val transFloat = transScaleStr.replace("x", "").toFloatOrNull() ?: 1.0f
+                val animFloat = animScaleStr.replace("x", "").toFloatOrNull() ?: 1.0f
+                
+                applyScalesViaShizuku(winFloat, transFloat, animFloat)
+            }
+        }
+    }
+
+    private fun applyScalesViaShizuku(window: Float, transition: Float, animator: Float) {
+        try {
+            if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
+                executeShizukuCommand("settings put global window_animation_scale $window")
+                executeShizukuCommand("settings put global transition_animation_scale $transition")
+                executeShizukuCommand("settings put global animator_duration_scale $animator")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun executeShizukuCommand(command: String) {
+        try {
+            val process = Shizuku.newProcess(arrayOf("sh", "-c", command), null, null)
+            process.waitFor()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }
