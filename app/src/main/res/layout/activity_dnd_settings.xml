@@ -2,37 +2,40 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212"
+    android:background="#0B0B0B"
     android:orientation="vertical"
-    android:padding="20dp"
-    android:gravity="center">
+    android:padding="16dp">
 
     <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="DND &amp; Notification Settings"
+        android:textColor="#FF0055"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <Switch
+        android:id="@+id/switchDndService"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Do Not Disturb (DND) Mode"
-        android:textColor="#00FF66"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:layout_marginBottom="24dp" />
+        android:layout_marginTop="24dp"
+        android:text="Enable DND Service"
+        android:textColor="#FFFFFF" />
 
-    <Button
-        android:id="@+id/btnEnableDnd"
+    <Switch
+        android:id="@+id/switchMsgSilent"
         android:layout_width="match_parent"
-        android:layout_height="55dp"
-        android:text="ENABLE DND (Block Calls/Notifications)"
-        android:backgroundTint="#00FF66"
-        android:textColor="#000000"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Silence Incoming Messages"
+        android:textColor="#FFFFFF" />
 
-    <Button
-        android:id="@+id/btnDisableDnd"
+    <Switch
+        android:id="@+id/switchCallDnd"
         android:layout_width="match_parent"
-        android:layout_height="55dp"
-        android:text="DISABLE DND"
-        android:backgroundTint="#1E1E1E"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Block / Silence Calls"
         android:textColor="#FFFFFF" />
 
 </LinearLayout>
