@@ -8,9 +8,9 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Missing Foreground Service Permissions Added -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
     <application
         android:allowBackup="true"
@@ -33,18 +33,26 @@
         <activity android:name=".ui.DndSettingsActivity" />
         <activity android:name=".ui.AnimationSettingsActivity" />
 
+        <!-- VPN Service with Android 14+ Foreground Service Type -->
         <service
             android:name=".service.GameVpnService"
             android:permission="android.permission.BIND_VPN_SERVICE"
-            android:exported="false">
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice">
             <intent-filter>
                 <action android:name="android.net.VpnService" />
             </intent-filter>
         </service>
 
+        <!-- Crosshair Overlay Service with Special Use Type -->
         <service
             android:name=".service.CrosshairService"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.foregroundServiceType"
+                android:value="specialUse" />
+        </service>
 
     </application>
 </manifest>
