@@ -1,60 +1,48 @@
 package com.neon.gamebooster.ui
 
-import android.content.Context
-import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
+import android.content.Intent
 import android.os.Bundle
-import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.ListView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.neon.gamebooster.R
 
 class AppListActivity : AppCompatActivity() {
-
-    private val selectedPackages = HashSet<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_app_list)
 
-        val listView = findViewById<ListView>(R.id.listViewApps)
-        val btnSave = findViewById<Button>(R.id.btnSaveApps)
+        val rvApps = findViewById<RecyclerView>(R.id.rvApps)
+        val btnSave = findViewById<Button>(R.id.btnSaveSelection)
 
-        val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
-        val savedSet = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
-        selectedPackages.addAll(savedSet)
+        rvApps.layoutManager = LinearLayoutManager(this)
 
         val pm = packageManager
-        val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 || (it.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0 }
-            .sortedBy { pm.getApplicationLabel(it).toString() }
+        
+        // Query all launcher applications so user installed apps/games show up properly
+        val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+        val resolveInfos = pm.queryIntentActivities(mainIntent, 0)
+        val appList = ArrayList<AppModel>()
 
-        val appNames = apps.map { pm.getApplicationLabel(it).toString() }
-
-        // Custom list_item_app layout implementation for white text
-        val adapter = ArrayAdapter(this, R.layout.list_item_app, appNames)
-        listView.adapter = adapter
-        listView.choiceMode = ListView.CHOICE_MODE_MULTIPLE
-
-        for (i in apps.indices) {
-            if (selectedPackages.contains(apps[i].packageName)) {
-                listView.setItemChecked(i, true)
+        for (ri in resolveInfos) {
+            val pkgName = ri.activityInfo.packageName
+            val appName = ri.loadLabel(pm).toString()
+            val icon = ri.loadIcon(pm)
+            
+            // Exclude current app package if needed
+            if (pkgName != packageName) {
+                appList.add(AppModel(appName, pkgName, icon, false))
             }
         }
 
-        btnSave.setOnClickListener {
-            selectedPackages.clear()
-            val checkedPositions = listView.checkedItemPositions
-            for (i in 0 until adapter.count) {
-                if (checkedPositions.get(i)) {
-                    selectedPackages.add(apps[i].packageName)
-                }
-            }
+        val adapter = AppListAdapter(appList)
+        rvApps.adapter = adapter
 
-            prefs.edit().putStringSet("selected_apps", selectedPackages).apply()
-            Toast.makeText(this, "Selected Games Saved Successfully!", Toast.LENGTH_SHORT).show()
+        btnSave?.setOnClickListener {
             finish()
         }
     }
