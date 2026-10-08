@@ -15,7 +15,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.neon.gamebooster.R
 
-// AppModel Data Class
 data class AppModel(
     val appName: String,
     val packageName: String,
@@ -66,35 +65,37 @@ class AppListActivity : AppCompatActivity() {
     }
 }
 
-// AppListAdapter Class
 class AppListAdapter(private val appList: List<AppModel>) :
     RecyclerView.Adapter<AppListAdapter.AppViewHolder>() {
 
     class AppViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val tvName: TextView? = itemView.findViewById(android.R.id.text1)
-        val cbSelect: CheckBox? = itemView.findViewById(android.R.id.checkbox)
+        val tvName: TextView = itemView.findViewById(R.id.tvAppName)
+        val cbSelect: CheckBox = itemView.findViewById(R.id.cbSelect)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(android.R.layout.simple_list_item_multiple_choice, parent, false)
+            .inflate(R.layout.item_app, parent, false)
         return AppViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: AppViewHolder, position: Int) {
         val item = appList[position]
-        holder.tvName?.text = item.appName
-        holder.cbSelect?.isChecked = item.isSelected
+        holder.tvName.text = item.appName
         
+        // RecyclerView recycling glitch fix
+        holder.cbSelect.setOnCheckedChangeListener(null)
+        holder.cbSelect.isChecked = item.isSelected
+
         holder.itemView.setOnClickListener {
             item.isSelected = !item.isSelected
-            holder.cbSelect?.isChecked = item.isSelected
+            holder.cbSelect.isChecked = item.isSelected
         }
-        holder.cbSelect?.setOnCheckedChangeListener { _, isChecked ->
+
+        holder.cbSelect.setOnCheckedChangeListener { _, isChecked ->
             item.isSelected = isChecked
         }
     }
 
     override fun getItemCount(): Int = appList.size
-    }
-    
+}
