@@ -55,11 +55,79 @@ class CrosshairService : Service() {
         try {
             windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-            // Saved position load karne ke liye
             val prefs = getSharedPreferences("CrosshairPrefs", Context.MODE_PRIVATE)
             val savedX = prefs.getInt("pos_x", 0)
-            val savedY = prefs.getInt("pos_y", 1)
+            val savedY = prefs.getInt("pos_y", 0)
 
             val textView = TextView(this).apply {
-                text = "o"
-                
+                text = "+"
+                setTextColor(Color.RED)
+                textSize = 24f
+            }
+
+            val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            } else {
+                WindowManager.LayoutParams.TYPE_PHONE
+            }
+
+            val params = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                layoutFlag,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = savedX
+                y = savedY
+            }
+
+            // Dragging / Touch listener for movement
+            var initialX = 0
+            var initialY = 0
+            var initialTouchX = 0f
+            var initialTouchY = 0f
+
+            textView.setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        initialX = params.x
+                        initialY = params.y
+                        initialTouchX = event.rawX
+                        initialTouchY = event.rawY
+                        true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        params.x = initialX + (event.rawX - initialTouchX).toInt()
+                        params.y = initialY + (event.rawY - initialTouchY).toInt()
+                        windowManager?.updateViewLayout(textView, params)
+                        true
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        // Save position
+                        prefs.edit().putInt("pos_x", params.x).putInt("pos_y", params.y).apply()
+                        true
+                    }
+                    else -> false
+                }
+            }
+
+            crosshairView = textView
+            windowManager?.addView(crosshairView, params)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (crosshairView != null) {
+            windowManager?.removeView(crosshairView)
+            crosshairView = null
+        }
+    }
+}
