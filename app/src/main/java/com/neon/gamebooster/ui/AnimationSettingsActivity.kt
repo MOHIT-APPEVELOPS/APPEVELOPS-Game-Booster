@@ -90,8 +90,21 @@ class AnimationSettingsActivity : AppCompatActivity() {
 
     private fun executeShizukuCommand(command: String) {
         try {
-            val process = Shizuku.newProcess(arrayOf("sh", "-c", command), null, null)
-            process.waitFor()
+            // Using Reflection to bypass Shizuku's private newProcess visibility check
+            val method = Shizuku::class.java.getDeclaredMethod(
+                "newProcess",
+                Array<String>::class.java,
+                Array<String>::class.java,
+                String::class.java
+            )
+            method.isAccessible = true
+            val process = method.invoke(
+                null,
+                arrayOf("sh", "-c", command),
+                null,
+                null
+            ) as? Process
+            process?.waitFor()
         } catch (e: Exception) {
             e.printStackTrace()
         }
