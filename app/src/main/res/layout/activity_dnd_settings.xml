@@ -38,4 +38,12 @@
         android:text="Block / Silence Calls"
         android:textColor="#FFFFFF" />
 
+    <Switch
+        android:id="@+id/switchFloatingLine"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Floating Line Feature"
+        android:textColor="#FFFFFF" />
+
 </LinearLayout>
