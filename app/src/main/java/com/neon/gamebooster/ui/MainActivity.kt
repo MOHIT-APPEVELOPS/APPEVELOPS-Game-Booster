@@ -4,30 +4,24 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import android.widget.Button
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SwitchCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.neon.gamebooster.R
-import com.neon.gamebooster.service.CrosshairService
-import com.neon.gamebooster.service.GameVpnService
 import com.neon.gamebooster.utils.CpuBoosterManager
 import rikka.shizuku.Shizuku
 
 class MainActivity : AppCompatActivity() {
 
-    private val VPN_REQUEST_CODE = 100
-    private val OVERLAY_REQUEST_CODE = 101
     private val SHIZUKU_PERMISSION_REQUEST_CODE = 102
-    
     private lateinit var rvSelectedGames: RecyclerView
     private lateinit var tvStatus: TextView
 
@@ -44,54 +38,55 @@ class MainActivity : AppCompatActivity() {
         val btnAnimationSettings = findViewById<Button>(R.id.btnAnimationSettings)
         val btnToggleBoost = findViewById<Button>(R.id.btnToggleBoost)
         
-        val switchVpn = findViewById<SwitchCompat>(R.id.switchVpn)
-        val switchCrosshair = findViewById<SwitchCompat>(R.id.switchCrosshair)
-        val switchBgAppKiller = findViewById<SwitchCompat>(R.id.switchBgAppKiller)
-        val switchCacheClear = findViewById<SwitchCompat>(R.id.switchCacheClear)
-        val switchSystemBoost = findViewById<SwitchCompat>(R.id.switchSystemBoost)
-        val switchBatteryOptimization = findViewById<SwitchCompat>(R.id.switchBatteryOptimization)
+        // Standard android.widget.Switch use kiya gaya hai taaki ClassCastException na aaye
+        val switchVpn = findViewById<Switch>(R.id.switchVpn)
+        val switchCrosshair = findViewById<Switch>(R.id.switchCrosshair)
+        val switchBgAppKiller = findViewById<Switch>(R.id.switchBgAppKiller)
+        val switchCacheClear = findViewById<Switch>(R.id.switchCacheClear)
+        val switchSystemBoost = findViewById<Switch>(R.id.switchSystemBoost)
+        val switchBatteryOptimization = findViewById<Switch>(R.id.switchBatteryOptimization)
         
         rvSelectedGames = findViewById(R.id.rvSelectedGames)
         rvSelectedGames.layoutManager = LinearLayoutManager(this)
 
         updateShizukuStatus()
 
-        switchVpn.isChecked = prefs.getBoolean("enable_vpn", true)
-        switchCrosshair.isChecked = prefs.getBoolean("enable_crosshair", true)
-        switchBgAppKiller.isChecked = prefs.getBoolean("enable_bg_killer", true)
-        switchCacheClear.isChecked = prefs.getBoolean("enable_cache_clear", true)
-        switchSystemBoost.isChecked = prefs.getBoolean("enable_system_boost", true)
+        switchVpn?.isChecked = prefs.getBoolean("enable_vpn", true)
+        switchCrosshair?.isChecked = prefs.getBoolean("enable_crosshair", true)
+        switchBgAppKiller?.isChecked = prefs.getBoolean("enable_bg_killer", true)
+        switchCacheClear?.isChecked = prefs.getBoolean("enable_cache_clear", true)
+        switchSystemBoost?.isChecked = prefs.getBoolean("enable_system_boost", true)
         
-        switchBatteryOptimization.isChecked = isBatteryOptimizationIgnored()
-        switchBatteryOptimization.setOnCheckedChangeListener { _, isChecked ->
+        switchBatteryOptimization?.isChecked = isBatteryOptimizationIgnored()
+        switchBatteryOptimization?.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) requestIgnoreBatteryOptimizations()
         }
 
-        switchVpn.setOnCheckedChangeListener { _, isChecked ->
+        switchVpn?.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_vpn", isChecked).apply()
         }
 
-        switchCrosshair.setOnCheckedChangeListener { _, isChecked ->
+        switchCrosshair?.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_crosshair", isChecked).apply()
         }
 
-        btnConnectShizuku.setOnClickListener {
+        btnConnectShizuku?.setOnClickListener {
             requestShizukuPermission()
         }
 
-        btnSelectApps.setOnClickListener {
+        btnSelectApps?.setOnClickListener {
             startActivity(Intent(this, AppListActivity::class.java))
         }
 
-        btnDndSettings.setOnClickListener {
+        btnDndSettings?.setOnClickListener {
             startActivity(Intent(this, DndSettingsActivity::class.java))
         }
 
-        btnAnimationSettings.setOnClickListener {
+        btnAnimationSettings?.setOnClickListener {
             startActivity(Intent(this, AnimationSettingsActivity::class.java))
         }
 
-        btnToggleBoost.setOnClickListener {
+        btnToggleBoost?.setOnClickListener {
             Toast.makeText(this, "Services Started Successfully!", Toast.LENGTH_SHORT).show()
         }
     }
