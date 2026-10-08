@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:gravity="center">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Do Not Disturb (DND) Mode"
+        android:textColor="#00FF66"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="24dp" />
+
+    <Button
+        android:id="@+id/btnEnableDnd"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:text="ENABLE DND (Block Calls/Notifications)"
+        android:backgroundTint="#00FF66"
+        android:textColor="#000000"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/btnDisableDnd"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:text="DISABLE DND"
+        android:backgroundTint="#1E1E1E"
+        android:textColor="#FFFFFF" />
+
+</LinearLayout>
