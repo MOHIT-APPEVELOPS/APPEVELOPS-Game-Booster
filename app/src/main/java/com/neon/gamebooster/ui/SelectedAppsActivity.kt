@@ -54,7 +54,7 @@ class SelectedAppsActivity : AppCompatActivity() {
         // A to Z Alphabetical Sorting
         appList.sortBy { it.appName.lowercase(Locale.ROOT) }
 
-        val adapter = SelectedAppsAdapter(this, appList, prefs) { pkgName ->
+        val adapter = SelectedAppsAdapter(appList) { pkgName ->
             startBoosterServicesAndLaunch(pkgName, prefs)
         }
         rvSelectedApps?.adapter = adapter
@@ -63,7 +63,7 @@ class SelectedAppsActivity : AppCompatActivity() {
     private fun startBoosterServicesAndLaunch(packageName: String, prefs: android.content.SharedPreferences) {
         try {
             // 1. Start VPN if enabled
-            if (prefs.getBoolean("enable_vpn", true)) {
+            if (prefs.getBoolean("enable_vpn", false)) {
                 val vpnIntent = Intent(this, GameVpnService::class.java).apply {
                     action = GameVpnService.ACTION_START_VPN
                 }
@@ -71,8 +71,13 @@ class SelectedAppsActivity : AppCompatActivity() {
             }
 
             // 2. Start Crosshair if enabled
-            if (prefs.getBoolean("enable_crosshair", true)) {
-                startService(Intent(this, CrosshairService::class.java))
+            if (prefs.getBoolean("enable_crosshair", false)) {
+                val crosshairIntent = Intent(this, CrosshairService::class.java)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    startForegroundService(crosshairIntent)
+                } else {
+                    startService(crosshairIntent)
+                }
             }
 
             // 3. Apply Shizuku Optimizations
@@ -95,9 +100,7 @@ class SelectedAppsActivity : AppCompatActivity() {
 }
 
 class SelectedAppsAdapter(
-    private val context: Context,
     private val appList: List<SelectedAppModel>,
-    private val prefs: android.content.SharedPreferences,
     private val onLaunchClick: (String) -> Unit
 ) : RecyclerView.Adapter<SelectedAppsAdapter.ViewHolder>() {
 
