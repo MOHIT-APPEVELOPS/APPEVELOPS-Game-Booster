@@ -32,6 +32,7 @@
         <activity android:name=".ui.AppListActivity" />
         <activity android:name=".ui.DndSettingsActivity" />
         <activity android:name=".ui.AnimationSettingsActivity" />
+        <activity android:name=".ui.SelectedAppsActivity" />
 
         <!-- VPN Service -->
         <service
