@@ -10,10 +10,14 @@ import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
 import androidx.core.app.NotificationCompat
+import java.io.FileInputStream
+import java.util.concurrent.atomic.AtomicBoolean
 
 class GameVpnService : VpnService() {
 
     private var vpnInterface: ParcelFileDescriptor? = null
+    private val isRunning = AtomicBoolean(false)
+    private var vpnThread: Thread? = null
 
     companion object {
         const val ACTION_START_VPN = "com.neon.gamebooster.START_VPN"
@@ -56,15 +60,14 @@ class GameVpnService : VpnService() {
             .build()
 
         try {
-            // Android 14+ (API 34+) safe foreground service type handling
+            // Android 14+ safe foreground service type for VPN
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(101, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
+                startForeground(101, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_VPN)
             } else {
                 startForeground(101, notification)
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            // Fallback to normal startForeground if type fails
             startForeground(101, notification)
         }
     }
@@ -73,22 +76,47 @@ class GameVpnService : VpnService() {
         try {
             if (vpnInterface == null) {
                 val builder = Builder()
-                builder.addAddress("10.0.0.2", 24)
-                builder.addRoute("0.0.0.0", 0)
-                builder.addDnsServer("1.1.1.1") // Cloudflare DNS
-                builder.addDnsServer("8.8.8.8") // Google DNS
-                builder.setSession("NeonGameBoosterVPN")
-                builder.setMtu(1500)
+                    .addAddress("10.0.0.2", 24)
+                    .addRoute("0.0.0.0", 0)
+                    .addDnsServer("1.1.1.1") // Cloudflare DNS
+                    .addDnsServer("8.8.8.8") // Google DNS
+                    .setSession("NeonGameBoosterVPN")
+                    .setMtu(1500)
                 
                 vpnInterface = builder.establish()
+
+                if (vpnInterface != null) {
+                    isRunning.set(true)
+                    startVpnPacketLoop(vpnInterface!!)
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
+    private fun startVpnPacketLoop(pfd: ParcelFileDescriptor) {
+        vpnThread = Thread({
+            try {
+                val inputStream = FileInputStream(pfd.fileDescriptor)
+                val buffer = ByteArray(32767)
+                while (isRunning.get()) {
+                    val length = inputStream.read(buffer)
+                    if (length > 0) {
+                        // Packets processed to keep TUN interface active
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }, "VpnPacketThread")
+        vpnThread?.start()
+    }
+
     private fun stopVpn() {
         try {
+            isRunning.set(false)
+            vpnThread?.interrupt()
             vpnInterface?.close()
             vpnInterface = null
         } catch (e: Exception) {
