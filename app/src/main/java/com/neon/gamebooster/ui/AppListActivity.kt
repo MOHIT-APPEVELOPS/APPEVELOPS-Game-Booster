@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.neon.gamebooster.R
+import java.util.Locale
 
 data class AppModel(
     val appName: String,
@@ -53,6 +54,9 @@ class AppListActivity : AppCompatActivity() {
                 appList.add(AppModel(appName, pkgName, icon, isSelected))
             }
         }
+
+        // A to Z Alphabetical Sorting Applied Here
+        appList.sortBy { it.appName.lowercase(Locale.ROOT) }
 
         val adapter = AppListAdapter(appList)
         rvApps?.adapter = adapter
