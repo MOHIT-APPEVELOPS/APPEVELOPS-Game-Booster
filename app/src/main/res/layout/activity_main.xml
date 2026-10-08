@@ -1,157 +1,150 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0D0E15"
-    android:orientation="vertical"
+    android:background="#0B0B0B"
     android:padding="16dp">
 
-    <!-- Header Title -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="NEON GAME BOOSTER"
-        android:textColor="#FF0055"
-        android:textSize="22sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="Secure • Non-Root • Anti-Ban"
-        android:textColor="#A0A5BD"
-        android:textSize="12sp" />
-
-    <!-- Status Card -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#161823"
-        android:orientation="vertical"
-        android:padding="16dp"
-        android:layout_marginBottom="16dp">
+        android:orientation="vertical">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="SYSTEM STATUS"
+            android:text="NEON GAME BOOSTER"
             android:textColor="#FF0055"
-            android:textSize="12sp"
+            android:textSize="22sp"
             android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Secure • Non-Root • Anti-Ban"
+            android:textColor="#888888"
+            android:textSize="12sp" />
+
+        <!-- Shizuku Engine Box -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="Checking Engine Status..."
-            android:textColor="#FFFFFF"
-            android:textSize="14sp" />
-    </LinearLayout>
+            android:layout_marginTop="16dp"
+            android:background="#1A1A1A"
+            android:orientation="vertical"
+            android:padding="12dp">
 
-    <!-- Select Apps Button -->
-    <Button
-        android:id="@+id/btnSelectApps"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:backgroundTint="#161823"
-        android:text="SELECT GAMES / APPS"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold"
-        android:layout_marginBottom="12dp" />
+            <TextView
+                android:id="@+id/tvStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Shizuku Engine: Checking..."
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
 
-    <!-- Features Container -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#161823"
-        android:orientation="vertical"
-        android:padding="12dp"
-        android:layout_marginBottom="12dp">
+            <Button
+                android:id="@+id/btnConnectShizuku"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Connect Shizuku" />
+        </LinearLayout>
 
-        <!-- VPN Switch -->
-        <androidx.appcompat.widget.SwitchCompat
+        <!-- Select Games/Apps Button -->
+        <Button
+            android:id="@+id/btnSelectApps"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="#1F1F1F"
+            android:text="Select Games / APPS"
+            android:textColor="#FFFFFF" />
+
+        <!-- Feature Switches -->
+        <Switch
             android:id="@+id/switchVpn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:text="VPN Ping Isolation"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:padding="6dp" />
+            android:textColor="#FFFFFF" />
 
-        <!-- Crosshair Switch -->
-        <androidx.appcompat.widget.SwitchCompat
+        <Switch
             android:id="@+id/switchCrosshair"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:text="Floating Crosshair"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:padding="6dp" />
+            android:textColor="#FFFFFF" />
 
-        <!-- Window Animation Scale Switch -->
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switchWindowAnim"
+        <!-- Sub-menu Buttons -->
+        <Button
+            android:id="@+id/btnDndSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Window Animation Scale (0.1x)"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:padding="6dp" />
+            android:layout_marginTop="12dp"
+            android:backgroundTint="#2A2A2A"
+            android:text="DND Services Setting ➔"
+            android:textColor="#FF0055" />
 
-        <!-- Transition Animation Scale Switch -->
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switchTransitionAnim"
+        <Button
+            android:id="@+id/btnAnimationSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Transition Animation Scale (0.1x)"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:padding="6dp" />
+            android:layout_marginTop="8dp"
+            android:backgroundTint="#2A2A2A"
+            android:text="Animation Setting ➔"
+            android:textColor="#FF0055" />
 
-        <!-- Animator Duration Scale Switch -->
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switchAnimatorAnim"
+        <!-- System Optimizations -->
+        <Switch
+            android:id="@+id/switchBgAppKiller"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Animator Duration Scale (0.1x)"
+            android:layout_marginTop="12dp"
+            android:text="Background App Killer"
+            android:textColor="#FFFFFF" />
+
+        <Switch
+            android:id="@+id/switchCacheClear"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Cache Clear"
+            android:textColor="#FFFFFF" />
+
+        <Switch
+            android:id="@+id/switchSystemBoost"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="System Boost"
+            android:textColor="#FFFFFF" />
+
+        <Switch
+            android:id="@+id/switchBatteryOptimization"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Disable Battery Restriction"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/btnToggleBoost"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:backgroundTint="#FF0055"
+            android:padding="14dp"
+            android:text="START SERVICES"
             android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:padding="6dp" />
+            android:textStyle="bold" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvSelectedGames"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" />
 
     </LinearLayout>
-
-    <!-- Start Booster Service Button -->
-    <Button
-        android:id="@+id/btnToggleBoost"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:backgroundTint="#FF0055"
-        android:text="START BOOSTER SERVICE"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="SELECTED GAMES DASHBOARD"
-        android:textColor="#A0A5BD"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
-
-    <!-- Selected Games List -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvSelectedGames"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
-</LinearLayout>
+</ScrollView>
