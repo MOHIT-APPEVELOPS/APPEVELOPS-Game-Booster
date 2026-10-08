@@ -58,10 +58,14 @@ class MainActivity : AppCompatActivity() {
         
         rvSelectedGames = findViewById(R.id.rvSelectedGames)
         rvSelectedGames.layoutManager = LinearLayoutManager(this)
+        
+        // TODO: Yahan par apne Selected Games ka Adapter set karein taaki 'No adapter attached' warning na aaye
+        // val gameAdapter = GameAdapter(selectedGamesList)
+        // rvSelectedGames.adapter = gameAdapter
 
         updateShizukuStatus()
 
-        // App Start hote hi Permissions lene ke liye (Notebook Step 2)
+        // App Start hote hi Permissions lene ke liye
         checkFirstLaunchPermissions()
 
         switchVpn?.isChecked = prefs.getBoolean("enable_vpn", false)
@@ -114,7 +118,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Step 2: Automatic Permission Check & Dialog on Launch
     private fun checkFirstLaunchPermissions() {
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
         val isFirstLaunch = prefs.getBoolean("is_first_launch", true)
@@ -137,24 +140,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestAllAppPermissions() {
-        // 1. Notification Permission (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIF_PERMISSION_REQUEST_CODE)
             }
         }
 
-        // 2. Overlay Permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             checkAndRequestOverlayPermission()
         }
 
-        // 3. Battery Optimization Permission
         if (!isBatteryOptimizationIgnored()) {
             requestIgnoreBatteryOptimizations()
         }
 
-        // 4. VPN Permission
         checkAndRequestVpnPermission()
     }
 
@@ -176,11 +175,32 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Added onActivityResult to handle permission responses properly
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        when (requestCode) {
+            VPN_REQUEST_CODE -> {
+                if (resultCode == RESULT_OK) {
+                    Toast.makeText(this, "VPN Connected Successfully", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "VPN Permission Denied", Toast.LENGTH_SHORT).show()
+                }
+            }
+            OVERLAY_RESULT_CODE_FIX -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
+                    Toast.makeText(this, "Overlay Permission Granted", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Overlay Permission Denied", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     private fun startAllActiveServices() {
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
         
         if (prefs.getBoolean("enable_vpn", false)) {
-            val vpnIntent = VpnService.prepare(this)
+            val vpnIntent =VpnService.prepare(this)
             if (vpnIntent != null) {
                 startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
             } else {
