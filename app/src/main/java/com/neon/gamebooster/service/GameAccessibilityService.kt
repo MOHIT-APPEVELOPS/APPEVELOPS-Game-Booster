@@ -14,6 +14,11 @@ class GameAccessibilityService : AccessibilityService() {
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val packageName = event.packageName?.toString() ?: return
 
+            // Ignore system UI or launcher to prevent flickering
+            if (packageName == "com.android.systemui" || packageName.contains("launcher")) {
+                return
+            }
+
             val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
             val selectedGames = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
 
@@ -73,7 +78,6 @@ class GameAccessibilityService : AccessibilityService() {
         // Restore Normal Phone Animations (Scale 1.0)
         try {
             if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
-                // Reset scales to normal (1.0x) when game exits
                 CpuBoosterManager.resetAnimationsToNormal()
             }
         } catch (e: Exception) {
@@ -82,7 +86,6 @@ class GameAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() {
-        // Cleanup if service interrupted
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
         onGameClosed(prefs)
     }
