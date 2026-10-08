@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Animation Speed Settings"
+        android:textColor="#00FF66"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="24dp" />
+
+    <Button
+        android:id="@+id/btnAnimOff"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:text="Turn Animations OFF (0x)"
+        android:backgroundTint="#1E1E1E"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btnAnimFast"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:text="Fast Animations (0.5x)"
+        android:backgroundTint="#1E1E1E"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btnAnimNormal"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:text="Normal Animations (1.0x)"
+        android:backgroundTint="#1E1E1E"
+        android:textColor="#FFFFFF" />
+
+</LinearLayout>
