@@ -58,10 +58,6 @@ class MainActivity : AppCompatActivity() {
         
         rvSelectedGames = findViewById(R.id.rvSelectedGames)
         rvSelectedGames.layoutManager = LinearLayoutManager(this)
-        
-        // TODO: Yahan par apne Selected Games ka Adapter set karein taaki 'No adapter attached' warning na aaye
-        // val gameAdapter = GameAdapter(selectedGamesList)
-        // rvSelectedGames.adapter = gameAdapter
 
         updateShizukuStatus()
 
@@ -175,7 +171,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Added onActivityResult to handle permission responses properly
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         when (requestCode) {
@@ -186,7 +181,7 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, "VPN Permission Denied", Toast.LENGTH_SHORT).show()
                 }
             }
-            OVERLAY_RESULT_CODE_FIX -> {
+            OVERLAY_REQUEST_CODE -> { // Fixed from OVERLAY_RESULT_CODE_FIX to OVERLAY_REQUEST_CODE
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
                     Toast.makeText(this, "Overlay Permission Granted", Toast.LENGTH_SHORT).show()
                 } else {
@@ -200,7 +195,7 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
         
         if (prefs.getBoolean("enable_vpn", false)) {
-            val vpnIntent =VpnService.prepare(this)
+            val vpnIntent = VpnService.prepare(this)
             if (vpnIntent != null) {
                 startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
             } else {
