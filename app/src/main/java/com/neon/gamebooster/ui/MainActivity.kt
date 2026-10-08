@@ -110,8 +110,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Updated: START SERVICES button ab SelectedAppsActivity wali window kholega
         btnToggleBoost?.setOnClickListener {
-            startAllActiveServices()
+            val intent = Intent(this, SelectedAppsActivity::class.java)
+            startActivity(intent)
         }
     }
 
@@ -212,39 +214,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-    }
-
-    private fun startAllActiveServices() {
-        val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
-        
-        if (prefs.getBoolean("enable_vpn", false)) {
-            val vpnIntent = VpnService.prepare(this)
-            if (vpnIntent != null) {
-                startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
-            } else {
-                val intent = Intent(this, GameVpnService::class.java)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(intent)
-                } else {
-                    startService(intent)
-                }
-            }
-        }
-
-        if (prefs.getBoolean("enable_crosshair", false)) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-                checkAndRequestOverlayPermission()
-            } else {
-                val intent = Intent(this, CrosshairService::class.java)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(intent)
-                } else {
-                    startService(intent)
-                }
-            }
-        }
-
-        Toast.makeText(this, "Booster Services Started Successfully!", Toast.LENGTH_SHORT).show()
     }
 
     private fun isBatteryOptimizationIgnored(): Boolean {
