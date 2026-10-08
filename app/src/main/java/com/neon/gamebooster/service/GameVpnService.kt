@@ -60,9 +60,9 @@ class GameVpnService : VpnService() {
             .build()
 
         try {
-            // Android 14+ safe foreground service type for VPN
+            // Using CONNECTED_DEVICE type which is fully supported by your project setup
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                startForeground(101, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_VPN)
+                startForeground(101, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
             } else {
                 startForeground(101, notification)
             }
