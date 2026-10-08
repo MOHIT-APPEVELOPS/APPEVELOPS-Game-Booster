@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity() {
     
     private lateinit var rvSelectedGames: RecyclerView
     private lateinit var tvStatus: TextView
-    private lateinit var tvDevicePerfInfo: TextView
+    private var tvDevicePerfInfo: TextView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,7 +39,11 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
 
         tvStatus = findViewById(R.id.tvStatus)
-        tvDevicePerfInfo = findViewById(R.id.tvDevicePerfInfo)
+        
+        val perfInfoId = resources.getIdentifier("tvDevicePerfInfo", "id", packageName)
+        if (perfInfoId != 0) {
+            tvDevicePerfInfo = findViewById(perfInfoId)
+        }
         
         val btnSelectApps = findViewById<Button>(R.id.btnSelectApps)
         val btnToggleBoost = findViewById<Button>(R.id.btnToggleBoost)
@@ -49,7 +53,9 @@ class MainActivity : AppCompatActivity() {
         val switchWindowAnim = findViewById<SwitchCompat>(R.id.switchWindowAnim)
         val switchTransitionAnim = findViewById<SwitchCompat>(R.id.switchTransitionAnim)
         val switchAnimatorAnim = findViewById<SwitchCompat>(R.id.switchAnimatorAnim)
-        val switchBatteryOptimization = findViewById<SwitchCompat>(R.id.switchBatteryOptimization)
+        
+        val battOptId = resources.getIdentifier("switchBatteryOptimization", "id", packageName)
+        val switchBatteryOptimization = if (battOptId != 0) findViewById<SwitchCompat>(battOptId) else null
         
         rvSelectedGames = findViewById(R.id.rvSelectedGames)
         rvSelectedGames.layoutManager = LinearLayoutManager(this)
@@ -145,7 +151,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateDevicePerformanceDisplay() {
         try {
             val info = CpuBoosterManager.getDevicePerformanceInfo(this)
-            tvDevicePerfInfo.text = "Device Specs: $info"
+            tvDevicePerfInfo?.text = "Device Specs: $info"
         } catch (e: Exception) {
             e.printStackTrace()
         }
