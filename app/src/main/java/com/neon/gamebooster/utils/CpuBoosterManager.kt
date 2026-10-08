@@ -1,5 +1,6 @@
 package com.neon.gamebooster.utils
 
+import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -16,7 +17,7 @@ object CpuBoosterManager {
         }
     }
 
-    // Individual Animation Scale Control Methods (0.1x vs 1.0x)
+    // Individual Animation Scale Control Methods (Boolean compatibility)
     fun setWindowAnimationScale(enable: Boolean) {
         val value = if (enable) "0.1" else "1.0"
         executeCommand("settings put global window_animation_scale $value")
@@ -30,6 +31,19 @@ object CpuBoosterManager {
     fun setAnimatorDurationScale(enable: Boolean) {
         val value = if (enable) "0.1" else "1.0"
         executeCommand("settings put global animator_duration_scale $value")
+    }
+
+    // Dynamic String Animation Scale Control (For Spinner / Custom Value Settings like 0.1x, 0.2x, etc.)
+    fun setWindowAnimationScale(scale: String) {
+        executeCommand("settings put global window_animation_scale $scale")
+    }
+
+    fun setTransitionAnimationScale(scale: String) {
+        executeCommand("settings put global transition_animation_scale $scale")
+    }
+
+    fun setAnimatorDurationScale(scale: String) {
+        executeCommand("settings put global animator_duration_scale $scale")
     }
 
     // Reset all animations back to normal (1.0x) when exiting game
@@ -87,7 +101,7 @@ object CpuBoosterManager {
 
         // Step B: Kill Background Apps
         try {
-            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             val pm = context.packageManager
             val packages = pm.getInstalledApplications(PackageManager.GET_META_DATA)
 
@@ -108,6 +122,23 @@ object CpuBoosterManager {
         executeCommand("pm trim-caches 1000G")
         executeCommand("am kill-all")
         executeCommand("cmd power set-fixed-performance-mode-enabled true")
+    }
+
+    // 4. Device Hardware & Performance Profiling Helper (Zero Permissions Required)
+    fun getDevicePerformanceInfo(context: Context): String {
+        try {
+            val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val memoryInfo = ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(memoryInfo)
+            
+            val totalRamGB = memoryInfo.totalMem / (1024 * 1024 * 1024.toLong())
+            val availRamGB = memoryInfo.availMem / (1024 * 1024 * 1024.toLong())
+            val cpuCores = Runtime.getRuntime().availableProcessors()
+
+            return "RAM: ${availRamGB}GB / ${totalRamGB}GB | Cores: $cpuCores"
+        } catch (e: Exception) {
+            return "Performance Info Unavailable"
+        }
     }
 
     // Safe Shizuku Process Execution via Reflection
