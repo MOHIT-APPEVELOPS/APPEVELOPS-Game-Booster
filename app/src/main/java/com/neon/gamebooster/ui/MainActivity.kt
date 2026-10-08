@@ -145,7 +145,7 @@ class MainActivity : AppCompatActivity() {
     private fun updateDevicePerformanceDisplay() {
         try {
             val info = CpuBoosterManager.getDevicePerformanceInfo(this)
-            tvDevicePerfInfo?.text = "Device Specs: $info"
+            tvDevicePerfInfo.text = "Device Specs: $info"
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -240,6 +240,62 @@ class MainActivity : AppCompatActivity() {
                     startVpnService()
                 }
                 if (prefs.getBoolean("enable_crosshair", true)) {
+                    startCrosshairService()
+                }
+
+                try {
+                    CpuBoosterManager.autoCleanAndBoostSystem(this, game.packageName)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                try {
+                    CpuBoosterManager.setWindowAnimationScale(prefs.getBoolean("enable_window_anim", true))
+                    CpuBoosterManager.setTransitionAnimationScale(prefs.getBoolean("enable_transition_anim", true))
+                    CpuBoosterManager.setAnimatorDurationScale(prefs.getBoolean("enable_animator_anim", true))
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                try {
+                    CpuBoosterManager.applyPerformanceMode()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                val launchIntent = pm.getLaunchIntentForPackage(game.packageName)
+                if (launchIntent != null) {
+                    startActivity(launchIntent)
+                } else {
+                    Toast.makeText(this, "Unable to launch game", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        rvSelectedGames.adapter = adapter
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == VPN_REQUEST_CODE) {
+            val intent = Intent(this, GameVpnService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            Toast.makeText(this, "VPN Ping Isolation Active", Toast.LENGTH_SHORT).show()
+        } else if (requestCode == OVERLAY_REQUEST_CODE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
+            val intent = Intent(this, CrosshairService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            Toast.makeText(this, "Crosshair Overlay Active", Toast.LENGTH_SHORT).show()
+        }
+    }
+}
+efs.getBoolean("enable_crosshair", true)) {
                     startCrosshairService()
                 }
 
