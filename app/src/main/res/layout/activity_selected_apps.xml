@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:paddingBottom="16dp"
-        android:text="Select Game &amp; Launch"
+        android:text="Selected Games &amp; Apps"
         android:textColor="#FF1744"
         android:textSize="20sp"
         android:textStyle="bold" />
@@ -21,20 +21,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewApps"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
         android:scrollbars="vertical" />
-
-    <!-- Launch Button -->
-    <Button
-        android:id="@+id/btnLaunchSelectedApp"
-        android:layout_width="match_parent"
-        android:layout_height="55dp"
-        android:layout_marginTop="12dp"
-        android:backgroundTint="#FF1744"
-        android:text="LAUNCH GAME"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:textStyle="bold" />
 
 </LinearLayout>
