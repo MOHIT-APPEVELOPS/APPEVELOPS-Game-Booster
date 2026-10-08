@@ -1,6 +1,10 @@
 package com.neon.gamebooster.service
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
@@ -9,6 +13,7 @@ import android.os.IBinder
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.TextView
+import androidx.core.app.NotificationCompat
 
 class CrosshairService : Service() {
 
@@ -19,6 +24,33 @@ class CrosshairService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        startForegroundNotification()
+        showCrosshair()
+    }
+
+    private fun startForegroundNotification() {
+        val channelId = "crosshair_channel"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "Crosshair Service",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.createNotificationChannel(channel)
+        }
+
+        val notification: Notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Neon Crosshair Active")
+            .setContentText("+ 29sp Crosshair Running")
+            .setSmallIcon(android.R.drawable.ic_menu_compass)
+            .setOngoing(true)
+            .build()
+
+        startForeground(102, notification)
+    }
+
+    private fun showCrosshair() {
         try {
             windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
@@ -28,7 +60,6 @@ class CrosshairService : Service() {
                 WindowManager.LayoutParams.TYPE_PHONE
             }
 
-            // WRAP_CONTENT se yeh sirf '+' symbol jitni jagah lega, bada box nahi banega
             val params = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
@@ -41,11 +72,10 @@ class CrosshairService : Service() {
                 gravity = Gravity.CENTER
             }
 
-            // Exact 29sp size ka '+' crosshair TextView
             crosshairView = TextView(this).apply {
                 text = "+"
                 textSize = 29f
-                setTextColor(Color.RED) // Aap chaho toh Color.GREEN bhi kar sakte hain
+                setTextColor(Color.RED)
                 includeFontPadding = false
                 gravity = Gravity.CENTER
             }
