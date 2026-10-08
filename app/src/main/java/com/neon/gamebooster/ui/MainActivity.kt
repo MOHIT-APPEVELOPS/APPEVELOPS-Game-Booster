@@ -1,5 +1,6 @@
 package com.neon.gamebooster.ui
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -13,7 +14,10 @@ import android.widget.Button
 import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.neon.gamebooster.R
@@ -27,7 +31,8 @@ class MainActivity : AppCompatActivity() {
     private val VPN_REQUEST_CODE = 100
     private val OVERLAY_REQUEST_CODE = 101
     private val SHIZUKU_PERMISSION_REQUEST_CODE = 102
-    
+    private val NOTIF_PERMISSION_REQUEST_CODE = 103
+
     private lateinit var rvSelectedGames: RecyclerView
     private lateinit var tvStatus: TextView
 
@@ -56,6 +61,9 @@ class MainActivity : AppCompatActivity() {
 
         updateShizukuStatus()
 
+        // App Start hote hi Permissions lene ke liye (Notebook Step 2)
+        checkFirstLaunchPermissions()
+
         switchVpn?.isChecked = prefs.getBoolean("enable_vpn", false)
         switchCrosshair?.isChecked = prefs.getBoolean("enable_crosshair", false)
         switchBgAppKiller?.isChecked = prefs.getBoolean("enable_bg_killer", true)
@@ -67,20 +75,14 @@ class MainActivity : AppCompatActivity() {
             if (isChecked) requestIgnoreBatteryOptimizations()
         }
 
-        // VPN Toggle & Permission Request
         switchVpn?.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_vpn", isChecked).apply()
-            if (isChecked) {
-                checkAndRequestVpnPermission()
-            }
+            if (isChecked) checkAndRequestVpnPermission()
         }
 
-        // Floating Crosshair Permission Request
         switchCrosshair?.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_crosshair", isChecked).apply()
-            if (isChecked) {
-                checkAndRequestOverlayPermission()
-            }
+            if (isChecked) checkAndRequestOverlayPermission()
         }
 
         btnConnectShizuku?.setOnClickListener {
@@ -91,21 +93,19 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, AppListActivity::class.java))
         }
 
-        // DND Settings Page Navigation
         btnDndSettings?.setOnClickListener {
             try {
                 startActivity(Intent(this, DndSettingsActivity::class.java))
             } catch (e: Exception) {
-                Toast.makeText(this, "DndSettingsActivity is not registered in Manifest!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "DndSettingsActivity error", Toast.LENGTH_SHORT).show()
             }
         }
 
-        // Animation Settings Page Navigation
         btnAnimationSettings?.setOnClickListener {
             try {
                 startActivity(Intent(this, AnimationSettingsActivity::class.java))
             } catch (e: Exception) {
-                Toast.makeText(this, "AnimationSettingsActivity is not registered in Manifest!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "AnimationSettingsActivity error", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -114,25 +114,65 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Step 2: Automatic Permission Check & Dialog on Launch
+    private fun checkFirstLaunchPermissions() {
+        val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
+        val isFirstLaunch = prefs.getBoolean("is_first_launch", true)
+
+        if (isFirstLaunch) {
+            AlertDialog.Builder(this)
+                .setTitle("Permissions Required")
+                .setMessage("Neon Game Booster needs Display Overlay, Battery Optimization, Notification, and VPN permissions to optimize your gameplay effectively.")
+                .setPositiveButton("Accept") { _, _ ->
+                    prefs.edit().putBoolean("is_first_launch", false).apply()
+                    requestAllAppPermissions()
+                }
+                .setNegativeButton("Decline") { dialog, _ ->
+                    dialog.dismiss()
+                    Toast.makeText(this, "Some features may not work without permissions.", Toast.LENGTH_LONG).show()
+                }
+                .setCancelable(false)
+                .show()
+        }
+    }
+
+    private fun requestAllAppPermissions() {
+        // 1. Notification Permission (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIF_PERMISSION_REQUEST_CODE)
+            }
+        }
+
+        // 2. Overlay Permission
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            checkAndRequestOverlayPermission()
+        }
+
+        // 3. Battery Optimization Permission
+        if (!isBatteryOptimizationIgnored()) {
+            requestIgnoreBatteryOptimizations()
+        }
+
+        // 4. VPN Permission
+        checkAndRequestVpnPermission()
+    }
+
     private fun checkAndRequestVpnPermission() {
         val vpnIntent = VpnService.prepare(this)
         if (vpnIntent != null) {
             startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
-        } else {
-            Toast.makeText(this, "VPN Permission Already Granted", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun checkAndRequestOverlayPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, "Allow 'Display over other apps' permission for Crosshair", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Allow 'Display over other apps' permission", Toast.LENGTH_LONG).show()
             val intent = Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:$packageName")
             )
             startActivityForResult(intent, OVERLAY_REQUEST_CODE)
-        } else {
-            Toast.makeText(this, "Display Overlay Permission Granted", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -210,17 +250,6 @@ class MainActivity : AppCompatActivity() {
             }
         } catch (e: Exception) {
             Toast.makeText(this, "Shizuku Error", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == VPN_REQUEST_CODE && resultCode == RESULT_OK) {
-            Toast.makeText(this, "VPN Permission Granted!", Toast.LENGTH_SHORT).show()
-        } else if (requestCode == OVERLAY_REQUEST_CODE) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
-                Toast.makeText(this, "Display Overlay Permission Granted!", Toast.LENGTH_SHORT).show()
-            }
         }
     }
 }
