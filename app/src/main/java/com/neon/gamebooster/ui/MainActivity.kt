@@ -30,7 +30,6 @@ class MainActivity : AppCompatActivity() {
     
     private lateinit var rvSelectedGames: RecyclerView
     private lateinit var tvStatus: TextView
-    private var tvDevicePerfInfo: TextView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,43 +38,33 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
 
         tvStatus = findViewById(R.id.tvStatus)
-        
-        val perfInfoId = resources.getIdentifier("tvDevicePerfInfo", "id", packageName)
-        if (perfInfoId != 0) {
-            tvDevicePerfInfo = findViewById(perfInfoId)
-        }
-        
+        val btnConnectShizuku = findViewById<Button>(R.id.btnConnectShizuku)
         val btnSelectApps = findViewById<Button>(R.id.btnSelectApps)
+        val btnDndSettings = findViewById<Button>(R.id.btnDndSettings)
+        val btnAnimationSettings = findViewById<Button>(R.id.btnAnimationSettings)
         val btnToggleBoost = findViewById<Button>(R.id.btnToggleBoost)
         
         val switchVpn = findViewById<SwitchCompat>(R.id.switchVpn)
         val switchCrosshair = findViewById<SwitchCompat>(R.id.switchCrosshair)
-        val switchWindowAnim = findViewById<SwitchCompat>(R.id.switchWindowAnim)
-        val switchTransitionAnim = findViewById<SwitchCompat>(R.id.switchTransitionAnim)
-        val switchAnimatorAnim = findViewById<SwitchCompat>(R.id.switchAnimatorAnim)
-        
-        val battOptId = resources.getIdentifier("switchBatteryOptimization", "id", packageName)
-        val switchBatteryOptimization = if (battOptId != 0) findViewById<SwitchCompat>(battOptId) else null
+        val switchBgAppKiller = findViewById<SwitchCompat>(R.id.switchBgAppKiller)
+        val switchCacheClear = findViewById<SwitchCompat>(R.id.switchCacheClear)
+        val switchSystemBoost = findViewById<SwitchCompat>(R.id.switchSystemBoost)
+        val switchBatteryOptimization = findViewById<SwitchCompat>(R.id.switchBatteryOptimization)
         
         rvSelectedGames = findViewById(R.id.rvSelectedGames)
         rvSelectedGames.layoutManager = LinearLayoutManager(this)
 
         updateShizukuStatus()
-        updateDevicePerformanceDisplay()
 
         switchVpn.isChecked = prefs.getBoolean("enable_vpn", true)
         switchCrosshair.isChecked = prefs.getBoolean("enable_crosshair", true)
-        switchWindowAnim.isChecked = prefs.getBoolean("enable_window_anim", true)
-        switchTransitionAnim.isChecked = prefs.getBoolean("enable_transition_anim", true)
-        switchAnimatorAnim.isChecked = prefs.getBoolean("enable_animator_anim", true)
+        switchBgAppKiller.isChecked = prefs.getBoolean("enable_bg_killer", true)
+        switchCacheClear.isChecked = prefs.getBoolean("enable_cache_clear", true)
+        switchSystemBoost.isChecked = prefs.getBoolean("enable_system_boost", true)
         
-        if (switchBatteryOptimization != null) {
-            switchBatteryOptimization.isChecked = isBatteryOptimizationIgnored()
-            switchBatteryOptimization.setOnCheckedChangeListener { _, isChecked ->
-                if (isChecked) {
-                    requestIgnoreBatteryOptimizations()
-                }
-            }
+        switchBatteryOptimization.isChecked = isBatteryOptimizationIgnored()
+        switchBatteryOptimization.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) requestIgnoreBatteryOptimizations()
         }
 
         switchVpn.setOnCheckedChangeListener { _, isChecked ->
@@ -84,46 +73,26 @@ class MainActivity : AppCompatActivity() {
 
         switchCrosshair.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("enable_crosshair", isChecked).apply()
-            if (isChecked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-                Toast.makeText(this, "Allow 'Display over other apps' permission", Toast.LENGTH_LONG).show()
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")
-                )
-                startActivityForResult(intent, OVERLAY_REQUEST_CODE)
-            }
         }
 
-        switchWindowAnim.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("enable_window_anim", isChecked).apply()
-        }
-
-        switchTransitionAnim.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("enable_transition_anim", isChecked).apply()
-        }
-
-        switchAnimatorAnim.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("enable_animator_anim", isChecked).apply()
+        btnConnectShizuku.setOnClickListener {
+            requestShizukuPermission()
         }
 
         btnSelectApps.setOnClickListener {
             startActivity(Intent(this, AppListActivity::class.java))
         }
 
+        btnDndSettings.setOnClickListener {
+            startActivity(Intent(this, DndSettingsActivity::class.java))
+        }
+
+        btnAnimationSettings.setOnClickListener {
+            startActivity(Intent(this, AnimationSettingsActivity::class.java))
+        }
+
         btnToggleBoost.setOnClickListener {
-            if (!CpuBoosterManager.isShizukuAvailableAndGranted()) {
-                requestShizukuPermission()
-            } else {
-                try {
-                    CpuBoosterManager.applyPerformanceMode()
-                    CpuBoosterManager.setWindowAnimationScale(prefs.getBoolean("enable_window_anim", true))
-                    CpuBoosterManager.setTransitionAnimationScale(prefs.getBoolean("enable_transition_anim", true))
-                    CpuBoosterManager.setAnimatorDurationScale(prefs.getBoolean("enable_animator_anim", true))
-                    Toast.makeText(this, "Booster & Custom Animation Scales Active!", Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
+            Toast.makeText(this, "Services Started Successfully!", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -137,54 +106,9 @@ class MainActivity : AppCompatActivity() {
     private fun requestIgnoreBatteryOptimizations() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
-                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                    data = Uri.parse("package:$packageName")
-                }
-                startActivity(intent)
+                startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
             } catch (e: Exception) {
-                val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                startActivity(intent)
-            }
-        }
-    }
-
-    private fun updateDevicePerformanceDisplay() {
-        try {
-            val info = CpuBoosterManager.getDevicePerformanceInfo(this)
-            tvDevicePerfInfo?.text = "Device Specs: $info"
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun startVpnService() {
-        val vpnIntent = VpnService.prepare(this)
-        if (vpnIntent != null) {
-            startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
-        } else {
-            val intent = Intent(this, GameVpnService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent)
-            } else {
-                startService(intent)
-            }
-        }
-    }
-
-    private fun startCrosshairService() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, "Allow 'Display over other apps' permission", Toast.LENGTH_LONG).show()
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
-            startActivityForResult(intent, OVERLAY_REQUEST_CODE)
-        } else {
-            val intent = Intent(this, CrosshairService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent)
-            } else {
-                startService(intent)
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
             }
         }
     }
@@ -192,15 +116,13 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateShizukuStatus()
-        updateDevicePerformanceDisplay()
-        loadSelectedGames()
     }
 
     private fun updateShizukuStatus() {
         if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
-            tvStatus.text = "Shizuku Engine: Active & Ready (Non-Root Secure)"
+            tvStatus.text = "Shizuku Engine: Connected"
         } else {
-            tvStatus.text = "Shizuku Engine: Not Connected / Click to Download"
+            tvStatus.text = "Shizuku Engine: Not Connected"
         }
     }
 
@@ -211,93 +133,10 @@ class MainActivity : AppCompatActivity() {
                     Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE)
                 }
             } else {
-                Toast.makeText(this, "Shizuku Service is not running on device!", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Shizuku is not running!", Toast.LENGTH_LONG).show()
             }
         } catch (e: Exception) {
-            Toast.makeText(this, "Shizuku Integration Error", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun loadSelectedGames() {
-        val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
-        val selectedSet = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
-        val pm = packageManager
-        val list = ArrayList<GameModel>()
-
-        for (pkg in selectedSet) {
-            try {
-                val appInfo = pm.getApplicationInfo(pkg, 0)
-                val name = pm.getApplicationLabel(appInfo).toString()
-                val icon = pm.getApplicationIcon(appInfo)
-                list.add(GameModel(name, pkg, icon))
-            } catch (e: PackageManager.NameNotFoundException) {
-                e.printStackTrace()
-            }
-        }
-
-        val adapter = SelectedGamesAdapter(list) { game ->
-            if (!CpuBoosterManager.isShizukuAvailableAndGranted() && prefs.getBoolean("enable_window_anim", true)) {
-                Toast.makeText(this, "Shizuku required for Custom Animation Speed Optimization!", Toast.LENGTH_LONG).show()
-                requestShizukuPermission()
-            } else {
-                Toast.makeText(this, "Applying Settings & Launching Game...", Toast.LENGTH_SHORT).show()
-
-                if (prefs.getBoolean("enable_vpn", true)) {
-                    startVpnService()
-                }
-                if (prefs.getBoolean("enable_crosshair", true)) {
-                    startCrosshairService()
-                }
-
-                try {
-                    CpuBoosterManager.autoCleanAndBoostSystem(this, game.packageName)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-
-                try {
-                    CpuBoosterManager.setWindowAnimationScale(prefs.getBoolean("enable_window_anim", true))
-                    CpuBoosterManager.setTransitionAnimationScale(prefs.getBoolean("enable_transition_anim", true))
-                    CpuBoosterManager.setAnimatorDurationScale(prefs.getBoolean("enable_animator_anim", true))
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-
-                try {
-                    CpuBoosterManager.applyPerformanceMode()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-
-                val launchIntent = pm.getLaunchIntentForPackage(game.packageName)
-                if (launchIntent != null) {
-                    startActivity(launchIntent)
-                } else {
-                    Toast.makeText(this, "Unable to launch game", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-        rvSelectedGames.adapter = adapter
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == VPN_REQUEST_CODE) {
-            val intent = Intent(this, GameVpnService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent)
-            } else {
-                startService(intent)
-            }
-            Toast.makeText(this, "VPN Ping Isolation Active", Toast.LENGTH_SHORT).show()
-        } else if (requestCode == OVERLAY_REQUEST_CODE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
-            val intent = Intent(this, CrosshairService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent)
-            } else {
-                startService(intent)
-            }
-            Toast.makeText(this, "Crosshair Overlay Active", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Shizuku Error", Toast.LENGTH_SHORT).show()
         }
     }
 }
