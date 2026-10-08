@@ -2,12 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.neon.gamebooster">
 
-    <!-- Installed User Apps & Games ko list karne ke liye zaruri permission -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.BIND_VPN_SERVICE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -15,7 +15,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.NeonGameBooster">
+        android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
 
         <activity
             android:name=".ui.MainActivity"
@@ -26,12 +26,10 @@
             </intent-filter>
         </activity>
 
-        <!-- Sub-Activities Register Karein (Crash Fix) -->
         <activity android:name=".ui.AppListActivity" />
         <activity android:name=".ui.DndSettingsActivity" />
         <activity android:name=".ui.AnimationSettingsActivity" />
 
-        <!-- Services -->
         <service
             android:name=".service.GameVpnService"
             android:permission="android.permission.BIND_VPN_SERVICE"
