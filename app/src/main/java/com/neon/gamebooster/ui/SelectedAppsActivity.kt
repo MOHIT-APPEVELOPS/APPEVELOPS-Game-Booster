@@ -9,7 +9,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.RadioButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -27,11 +29,15 @@ data class SelectedAppModel(
 
 class SelectedAppsActivity : AppCompatActivity() {
 
+    private var selectedPackageName: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_selected_apps)
 
         val rvSelectedApps = findViewById<RecyclerView>(R.id.recyclerViewApps)
+        val btnLaunchSelectedApp = findViewById<Button>(R.id.btnLaunchSelectedApp)
+
         rvSelectedApps?.layoutManager = LinearLayoutManager(this)
 
         val pm = packageManager
@@ -54,10 +60,25 @@ class SelectedAppsActivity : AppCompatActivity() {
         // A to Z Alphabetical Sorting
         appList.sortBy { it.appName.lowercase(Locale.ROOT) }
 
-        val adapter = SelectedAppsAdapter(appList) { pkgName ->
-            startBoosterServicesAndLaunch(pkgName, prefs)
+        var selectedPosition = -1
+        if (appList.isNotEmpty()) {
+            selectedPackageName = appList[0].packageName
+            selectedPosition = 0
+        }
+
+        val adapter = SelectedAppsAdapter(appList, selectedPosition) { pkgName, position ->
+            selectedPackageName = pkgName
+            selectedPosition = position
         }
         rvSelectedApps?.adapter = adapter
+
+        btnLaunchSelectedApp?.setOnClickListener {
+            if (selectedPackageName != null) {
+                startBoosterServicesAndLaunch(selectedPackageName!, prefs)
+            } else {
+                Toast.makeText(this, "Please select a game first!", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun startBoosterServicesAndLaunch(packageName: String, prefs: android.content.SharedPreferences) {
@@ -92,6 +113,8 @@ class SelectedAppsActivity : AppCompatActivity() {
             val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
             if (launchIntent != null) {
                 startActivity(launchIntent)
+            } else {
+                Toast.makeText(this, "Unable to launch this app", Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -101,13 +124,14 @@ class SelectedAppsActivity : AppCompatActivity() {
 
 class SelectedAppsAdapter(
     private val appList: List<SelectedAppModel>,
-    private val onLaunchClick: (String) -> Unit
+    private var selectedPosition: Int,
+    private val onItemSelected: (String, Int) -> Unit
 ) : RecyclerView.Adapter<SelectedAppsAdapter.ViewHolder>() {
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val ivIcon: ImageView = itemView.findViewById(R.id.ivAppIcon)
         val tvName: TextView = itemView.findViewById(R.id.tvAppName)
-        val btnLaunch: Button = itemView.findViewById(R.id.btnLaunchApp)
+        val radioSelect: RadioButton = itemView.findViewById(R.id.radioSelect)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -121,8 +145,14 @@ class SelectedAppsAdapter(
         holder.tvName.text = item.appName
         holder.ivIcon.setImageDrawable(item.icon)
 
-        holder.btnLaunch.setOnClickListener {
-            onLaunchClick(item.packageName)
+        holder.radioSelect.isChecked = (position == selectedPosition)
+
+        holder.itemView.setOnClickListener {
+            val previousPosition = selectedPosition
+            selectedPosition = holder.adapterPosition
+            notifyItemChanged(previousPosition)
+            notifyItemChanged(selectedPosition)
+            onItemSelected(item.packageName, selectedPosition)
         }
     }
 
