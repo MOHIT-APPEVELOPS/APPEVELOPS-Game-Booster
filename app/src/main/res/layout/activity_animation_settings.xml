@@ -9,53 +9,59 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Animation Settings"
+        android:text="Animations Setting"
         android:textColor="#FF0055"
         android:textSize="20sp"
         android:textStyle="bold" />
 
     <Switch
-        android:id="@+id/switchAnimMaster"
+        android:id="@+id/switchAnimationEnable"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="Master Animation Control"
+        android:text="Enable Animation Tweaks"
         android:textColor="#FFFFFF" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="20dp"
         android:text="Window Animation Scale"
-        android:textColor="#AAAAAA" />
+        android:textColor="#CCCCCC" />
+
     <Spinner
         android:id="@+id/spinnerWindowAnim"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp" />
+        android:layout_height="48dp"
+        android:layout_marginTop="4dp"
+        android:background="#1F1F1F" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="Transition Animation Scale"
-        android:textColor="#AAAAAA" />
+        android:textColor="#CCCCCC" />
+
     <Spinner
         android:id="@+id/spinnerTransitionAnim"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp" />
+        android:layout_height="48dp"
+        android:layout_marginTop="4dp"
+        android:background="#1F1F1F" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Animator Duration Scale"
-        android:textColor="#AAAAAA" />
+        android:text="Animation Duration Scale"
+        android:textColor="#CCCCCC" />
+
     <Spinner
-        android:id="@+id/spinnerDurationAnim"
+        android:id="@+id/spinnerAnimatorAnim"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp" />
+        android:layout_height="48dp"
+        android:layout_marginTop="4dp"
+        android:background="#1F1F1F" />
 
 </LinearLayout>
