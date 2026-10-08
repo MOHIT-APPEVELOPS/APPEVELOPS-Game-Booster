@@ -9,41 +9,34 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="DND &amp; Notification Settings"
+        android:text="DND Services Setting"
         android:textColor="#FF0055"
         android:textSize="20sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        android:layout_marginBottom="24dp" />
 
     <Switch
-        android:id="@+id/switchDndService"
+        android:id="@+id/switchBlockCalls"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="Enable DND Service"
+        android:layout_marginTop="12dp"
+        android:text="Block Incoming Calls"
         android:textColor="#FFFFFF" />
 
     <Switch
-        android:id="@+id/switchMsgSilent"
+        android:id="@+id/switchBlockNotifications"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Silence Incoming Messages"
+        android:text="Block Notifications"
         android:textColor="#FFFFFF" />
 
     <Switch
-        android:id="@+id/switchCallDnd"
+        android:id="@+id/switchAutoReject"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Block / Silence Calls"
-        android:textColor="#FFFFFF" />
-
-    <Switch
-        android:id="@+id/switchFloatingLine"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Floating Line Feature"
+        android:text="Auto Reject Calls"
         android:textColor="#FFFFFF" />
 
 </LinearLayout>
