@@ -2,34 +2,33 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#0B0B0B"
     android:orientation="vertical"
-    android:background="@color/bg_black"
     android:padding="16dp">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Select Apps for Internet Routing"
-        android:textColor="@color/text_white"
+        android:textColor="#FFFFFF"
         android:textSize="18sp"
         android:textStyle="bold"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginBottom="16dp" />
 
-    <ListView
-        android:id="@+id/listViewApps"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvApps"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:divider="#333333"
-        android:dividerHeight="1dp"/>
+        android:layout_weight="1" />
 
     <Button
-        android:id="@+id/btnSaveApps"
+        android:id="@+id/btnSaveSelection"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="#FF0055"
         android:text="SAVE SELECTION"
-        android:backgroundTint="@color/neon_red"
-        android:textColor="@color/text_white"
-        android:layout_marginTop="12dp"/>
+        android:textColor="#FFFFFF"
+        android:textStyle="bold" />
 
 </LinearLayout>
