@@ -1,12 +1,27 @@
 package com.neon.gamebooster.ui
 
+import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
+import android.widget.CheckBox
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.neon.gamebooster.R
+
+// AppModel Data Class
+data class AppModel(
+    val appName: String,
+    val packageName: String,
+    val icon: Drawable,
+    var isSelected: Boolean = false
+)
 
 class AppListActivity : AppCompatActivity() {
 
@@ -17,33 +32,69 @@ class AppListActivity : AppCompatActivity() {
         val rvApps = findViewById<RecyclerView>(R.id.rvApps)
         val btnSave = findViewById<Button>(R.id.btnSaveSelection)
 
-        rvApps.layoutManager = LinearLayoutManager(this)
+        rvApps?.layoutManager = LinearLayoutManager(this)
 
         val pm = packageManager
-        
-        // Query all launcher applications so user installed apps/games show up properly
         val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
         val resolveInfos = pm.queryIntentActivities(mainIntent, 0)
         val appList = ArrayList<AppModel>()
+        
+        val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
+        val savedSet = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
 
         for (ri in resolveInfos) {
             val pkgName = ri.activityInfo.packageName
             val appName = ri.loadLabel(pm).toString()
             val icon = ri.loadIcon(pm)
             
-            // Exclude current app package if needed
             if (pkgName != packageName) {
-                appList.add(AppModel(appName, pkgName, icon, false))
+                val isSelected = savedSet.contains(pkgName)
+                appList.add(AppModel(appName, pkgName, icon, isSelected))
             }
         }
 
         val adapter = AppListAdapter(appList)
-        rvApps.adapter = adapter
+        rvApps?.adapter = adapter
 
         btnSave?.setOnClickListener {
+            val selectedPackages = appList.filter { it.isSelected }.map { it.packageName }.toSet()
+            prefs.edit().putStringSet("selected_apps", selectedPackages).apply()
             finish()
         }
     }
 }
+
+// AppListAdapter Class
+class AppListAdapter(private val appList: List<AppModel>) :
+    RecyclerView.Adapter<AppListAdapter.AppViewHolder>() {
+
+    class AppViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val tvName: TextView? = itemView.findViewById(android.R.id.text1)
+        val cbSelect: CheckBox? = itemView.findViewById(android.R.id.checkbox)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(android.R.layout.simple_list_item_multiple_choice, parent, false)
+        return AppViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: AppViewHolder, position: Int) {
+        val item = appList[position]
+        holder.tvName?.text = item.appName
+        holder.cbSelect?.isChecked = item.isSelected
+        
+        holder.itemView.setOnClickListener {
+            item.isSelected = !item.isSelected
+            holder.cbSelect?.isChecked = item.isSelected
+        }
+        holder.cbSelect?.setOnCheckedChangeListener { _, isChecked ->
+            item.isSelected = isChecked
+        }
+    }
+
+    override fun getItemCount(): Int = appList.size
+    }
+    
