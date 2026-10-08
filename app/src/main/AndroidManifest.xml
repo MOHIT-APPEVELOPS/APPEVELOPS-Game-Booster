@@ -20,6 +20,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
 
+        <!-- Main Launcher Activity -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true">
@@ -29,10 +30,19 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.AppListActivity" />
-        <activity android:name=".ui.DndSettingsActivity" />
-        <activity android:name=".ui.AnimationSettingsActivity" />
-        <activity android:name=".ui.SelectedAppsActivity" />
+        <!-- Internal Activities -->
+        <activity
+            android:name=".ui.AppListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.DndSettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.AnimationSettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.SelectedAppsActivity"
+            android:exported="false" />
 
         <!-- VPN Service -->
         <service
@@ -55,7 +65,7 @@
                 android:value="specialUse" />
         </service>
 
-        <!-- Game Accessibility Service (Newly Integrated) -->
+        <!-- Game Accessibility Service -->
         <service
             android:name=".service.GameAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
