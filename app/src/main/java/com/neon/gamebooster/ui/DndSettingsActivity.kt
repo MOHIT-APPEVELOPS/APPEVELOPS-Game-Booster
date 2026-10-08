@@ -2,8 +2,8 @@ package com.neon.gamebooster.ui
 
 import android.content.Context
 import android.os.Bundle
+import android.widget.Switch
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SwitchCompat
 import com.neon.gamebooster.R
 
 class DndSettingsActivity : AppCompatActivity() {
@@ -14,27 +14,24 @@ class DndSettingsActivity : AppCompatActivity() {
 
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
 
-        val switchDndService = findViewById<SwitchCompat>(R.id.switchDndService)
-        val switchMsgSilent = findViewById<SwitchCompat>(R.id.switchMsgSilent)
-        val switchCallDnd = findViewById<SwitchCompat>(R.id.switchCallDnd)
-        val switchFloatingLine = findViewById<SwitchCompat>(R.id.switchFloatingLine)
+        val switchBlockCalls = findViewById<Switch>(R.id.switchBlockCalls)
+        val switchBlockNotifications = findViewById<Switch>(R.id.switchBlockNotifications)
+        val switchAutoReject = findViewById<Switch>(R.id.switchAutoReject)
 
-        switchDndService.isChecked = prefs.getBoolean("dnd_service_on", true)
-        switchMsgSilent.isChecked = prefs.getBoolean("msg_silent_on", true)
-        switchCallDnd.isChecked = prefs.getBoolean("call_dnd_on", true)
-        switchFloatingLine.isChecked = prefs.getBoolean("floating_line_on", true)
+        switchBlockCalls?.isChecked = prefs.getBoolean("dnd_block_calls", false)
+        switchBlockNotifications?.isChecked = prefs.getBoolean("dnd_block_notifs", false)
+        switchAutoReject?.isChecked = prefs.getBoolean("dnd_auto_reject", false)
 
-        switchDndService.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("dnd_service_on", isChecked).apply()
+        switchBlockCalls?.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("dnd_block_calls", isChecked).apply()
         }
-        switchMsgSilent.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("msg_silent_on", isChecked).apply()
+
+        switchBlockNotifications?.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("dnd_block_notifs", isChecked).apply()
         }
-        switchCallDnd.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("call_dnd_on", isChecked).apply()
-        }
-        switchFloatingLine.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("floating_line_on", isChecked).apply()
+
+        switchAutoReject?.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("dnd_auto_reject", isChecked).apply()
         }
     }
 }
