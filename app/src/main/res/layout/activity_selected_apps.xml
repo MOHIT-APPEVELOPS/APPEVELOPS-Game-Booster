@@ -1,33 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="#1A1A1A"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:padding="12dp"
-    android:layout_marginBottom="8dp">
+    android:layout_height="match_parent"
+    android:background="#0D0D0D"
+    android:orientation="vertical"
+    android:padding="16dp">
 
-    <ImageView
-        android:id="@+id/ivAppIcon"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_marginEnd="12dp" />
-
+    <!-- Header Title -->
     <TextView
-        android:id="@+id/tvAppName"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingBottom="16dp"
+        android:text="Select Game &amp; Launch"
+        android:textColor="#FF1744"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <!-- Alphabetically Sorted Apps List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewApps"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
+        android:scrollbars="vertical" />
+
+    <!-- Launch Button -->
+    <Button
+        android:id="@+id/btnLaunchSelectedApp"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:layout_marginTop="12dp"
+        android:backgroundTint="#FF1744"
+        android:text="LAUNCH GAME"
         android:textColor="#FFFFFF"
         android:textSize="16sp"
         android:textStyle="bold" />
-
-    <RadioButton
-        android:id="@+id/radioSelect"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:clickable="false"
-        android:focusable="false" />
 
 </LinearLayout>
