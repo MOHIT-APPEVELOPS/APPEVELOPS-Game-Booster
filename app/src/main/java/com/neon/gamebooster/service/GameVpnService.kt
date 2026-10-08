@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -25,8 +26,13 @@ class GameVpnService : VpnService() {
             return START_NOT_STICKY
         }
 
-        startForegroundServiceNotification()
-        setupVpn()
+        try {
+            startForegroundServiceNotification()
+            setupVpn()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        
         return START_STICKY
     }
 
@@ -49,7 +55,18 @@ class GameVpnService : VpnService() {
             .setOngoing(true)
             .build()
 
-        startForeground(101, notification)
+        try {
+            // Android 14+ (API 34+) safe foreground service type handling
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(101, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
+            } else {
+                startForeground(101, notification)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Fallback to normal startForeground if type fails
+            startForeground(101, notification)
+        }
     }
 
     private fun setupVpn() {
@@ -77,12 +94,18 @@ class GameVpnService : VpnService() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-        } else {
-            @Suppress("DEPRECATION")
-            stopForeground(true)
+        
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
+                stopForeground(true)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
+        
         stopSelf()
     }
 
