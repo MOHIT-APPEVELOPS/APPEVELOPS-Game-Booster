@@ -6,11 +6,13 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
 import androidx.core.app.NotificationCompat
 import java.io.FileInputStream
+import java.io.IOException
 import java.util.concurrent.atomic.AtomicBoolean
 
 class GameVpnService : VpnService() {
@@ -59,7 +61,20 @@ class GameVpnService : VpnService() {
             .setOngoing(true)
             .build()
 
-        startForeground(101, notification)
+        // Android 14+ Foreground Service Type Enforcement Fix
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                startForeground(
+                    101,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+                )
+            } catch (e: Exception) {
+                startForeground(101, notification)
+            }
+        } else {
+            startForeground(101, notification)
+        }
     }
 
     private fun setupVpn() {
@@ -71,15 +86,19 @@ class GameVpnService : VpnService() {
             val pm = packageManager
 
             val builder = Builder()
-                // Valid /24 subnet address taaki Android OS interface ko reject na kare
                 .addAddress("10.120.0.2", 24)
                 .addRoute("0.0.0.0", 0)
                 .addDnsServer("8.8.8.8")
                 .setSession("NeonPingIsolation")
                 .setMtu(1500)
-                .setBlocking(false)
+                .setBlocking(true) // Blocking true rakhna zaroori hai taaki read() EAGAIN throw karke thread na maare
 
-            // Selected games ko safe bypass (direct network connection for zero ping)
+            // Android System DNS aur local services ko direct allow karein
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                builder.allowBypass()
+            }
+
+            // Selected games bypass (direct uninterrupted internet)
             for (gamePkg in selectedGames) {
                 try {
                     pm.getPackageInfo(gamePkg, 0)
@@ -89,7 +108,7 @@ class GameVpnService : VpnService() {
                 }
             }
 
-            // Neon Game Booster app ko bhi bypass rakhein taaki Shizuku/IPC disconnect na ho
+            // Game booster app bypass
             try {
                 builder.addDisallowedApplication(packageName)
             } catch (e: Exception) {
@@ -98,12 +117,14 @@ class GameVpnService : VpnService() {
 
             vpnInterface = builder.establish()
 
-            // Fallback: Agar kisi custom ROM par default route fail ho
+            // Fallback router agar OEM aggressive security /0 drop kare
             if (vpnInterface == null) {
                 val fallbackBuilder = Builder()
                     .addAddress("10.120.0.2", 24)
                     .addRoute("10.120.0.0", 24)
+                    .addDnsServer("8.8.8.8")
                     .setSession("NeonPingIsolation")
+                    .setBlocking(true)
                 vpnInterface = fallbackBuilder.establish()
             }
 
@@ -118,12 +139,18 @@ class GameVpnService : VpnService() {
 
     private fun startVpnPacketLoop(pfd: ParcelFileDescriptor) {
         vpnThread = Thread({
+            var inputStream: FileInputStream? = null
             try {
-                val inputStream = FileInputStream(pfd.fileDescriptor)
+                inputStream = FileInputStream(pfd.fileDescriptor)
                 val buffer = ByteArray(32767)
                 while (isRunning.get() && !Thread.currentThread().isInterrupted) {
-                    val length = inputStream.read(buffer)
-                    if (length <= 0) {
+                    try {
+                        val length = inputStream.read(buffer)
+                        if (length <= 0) {
+                            Thread.sleep(100)
+                        }
+                    } catch (e: IOException) {
+                        // Resource temporarily unavailable ko handle karein bina thread crash kiye
                         Thread.sleep(100)
                     }
                 }
@@ -131,6 +158,10 @@ class GameVpnService : VpnService() {
                 // Thread naturally stopped
             } catch (e: Exception) {
                 e.printStackTrace()
+            } finally {
+                try {
+                    inputStream?.close()
+                } catch (ignored: Exception) {}
             }
         }, "VpnPacketThread")
         vpnThread?.start()
