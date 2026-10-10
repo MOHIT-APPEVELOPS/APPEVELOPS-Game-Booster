@@ -56,13 +56,12 @@ class CrosshairService : Service() {
 
         val notification: Notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("Neon Crosshair Active")
-            .setContentText("Slim Crosshair Running")
+            .setContentText("Precision Micro Crosshair Running")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 
-        // Android 14+ (API 34) and Android 15 compatibility fix
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 NOTIFICATION_ID,
@@ -90,8 +89,13 @@ class CrosshairService : Service() {
                 WindowManager.LayoutParams.TYPE_PHONE
             }
 
-            // Crosshair overlay size (40dp box)
-            val sizePx = (40 * resources.displayMetrics.density).toInt()
+            // Size ko chota karke 20dp box kiya gaya hai
+            val density = resources.displayMetrics.density
+            val sizePx = (20 * density).toInt()
+
+            val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
+            val offsetX = prefs.getInt("crosshair_offset_x", 0)
+            val offsetY = prefs.getInt("crosshair_offset_y", 0)
 
             val params = WindowManager.LayoutParams(
                 sizePx,
@@ -104,9 +108,14 @@ class CrosshairService : Service() {
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.CENTER
+                x = offsetX
+                y = offsetY
+                // Camera notch/cutout bypass for true screen center
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                }
             }
 
-            // Sharp aur slim lines draw karne ke liye custom view
             crosshairView = SlimCrosshairView(this)
 
             windowManager?.addView(crosshairView, params)
@@ -172,27 +181,20 @@ class CrosshairService : Service() {
     }
 
     /**
-     * Patla aur accurate gaming crosshair draw karne ke liye custom view
+     * Precision Micro Crosshair with Center Dot (Scope Reticle Aligned)
      */
     private class SlimCrosshairView(context: Context) : View(context) {
-        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.RED
-            // Patla crosshair stroke (1.8dp)
-            strokeWidth = 1.8f * resources.displayMetrics.density
+        private val density = resources.displayMetrics.density
+
+        // Precision Line Paint (Neon Red)
+        private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#FF0033")
+            strokeWidth = 1.2f * density
             style = Paint.Style.STROKE
-            strokeCap = Paint.Cap.ROUND
+            strokeCap = Paint.Cap.SQUARE
         }
 
-        override fun onDraw(canvas: Canvas) {
-            super.onDraw(canvas)
-            val cx = width / 2f
-            val cy = height / 2f
-            val lineLength = 12f * resources.displayMetrics.density
+        // Center Micro Dot Paint (Sharp alignment dot)
+        private val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
 
-            // Horizontal Slim Line
-            canvas.drawLine(cx - lineLength, cy, cx + lineLength, cy, paint)
-            // Vertical Slim Line
-            canvas.drawLine(cx, cy - lineLength, cx, cy + lineLength, paint)
-        }
-    }
-}
+            
