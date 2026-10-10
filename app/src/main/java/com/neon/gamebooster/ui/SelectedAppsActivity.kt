@@ -49,6 +49,12 @@ class SelectedAppsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_selected_apps)
 
+        // Top-left Back Arrow Button click listener
+        val btnBack = findViewById<ImageView>(R.id.btnBack)
+        btnBack?.setOnClickListener {
+            finish()
+        }
+
         val rvSelectedApps = findViewById<RecyclerView>(R.id.recyclerViewApps)
         rvSelectedApps?.layoutManager = LinearLayoutManager(this)
 
