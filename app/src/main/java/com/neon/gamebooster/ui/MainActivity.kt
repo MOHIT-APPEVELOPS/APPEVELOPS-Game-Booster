@@ -25,8 +25,6 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.neon.gamebooster.R
-import com.neon.gamebooster.service.CrosshairService
-import com.neon.gamebooster.service.GameVpnService
 import com.neon.gamebooster.utils.CpuBoosterManager
 import rikka.shizuku.Shizuku
 
@@ -99,11 +97,11 @@ class MainActivity : AppCompatActivity() {
 
         updateShizukuStatus()
 
-        // App Start hote hi Permissions lene ke liye
+        // Step-by-step permissions prompt
         checkFirstLaunchPermissions()
 
-        switchVpn?.isChecked = prefs.getBoolean("enable_vpn", false)
-        switchCrosshair?.isChecked = prefs.getBoolean("enable_crosshair", false)
+        switchVpn?.isChecked = prefs.getBoolean("enable_vpn", true)
+        switchCrosshair?.isChecked = prefs.getBoolean("enable_crosshair", true)
         switchBgAppKiller?.isChecked = prefs.getBoolean("enable_bg_killer", true)
         switchCacheClear?.isChecked = prefs.getBoolean("enable_cache_clear", true)
         switchSystemBoost?.isChecked = prefs.getBoolean("enable_system_boost", true)
@@ -123,7 +121,6 @@ class MainActivity : AppCompatActivity() {
             if (isChecked) checkAndRequestOverlayPermission()
         }
 
-        // Connect button flow
         btnConnectShizuku?.setOnClickListener {
             handleConnectShizukuClick()
         }
@@ -148,19 +145,16 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // START SERVICES button SelectedAppsActivity wali window kholega
         btnToggleBoost?.setOnClickListener {
             val intent = Intent(this, SelectedAppsActivity::class.java)
             startActivity(intent)
         }
     }
 
-    // Connect button click handler
     private fun handleConnectShizukuClick() {
         val shizukuPkg = "moe.shizuku.privileged.api"
 
         if (!isPackageInstalled(shizukuPkg, packageManager)) {
-            // App nahi hai -> seedha Play Store khulega
             try {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$shizukuPkg"))
                 startActivity(intent)
@@ -169,13 +163,11 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             }
         } else {
-            // App hai -> seedha Shizuku app open hoga
             val launchIntent = packageManager.getLaunchIntentForPackage(shizukuPkg)
             if (launchIntent != null) {
                 startActivity(launchIntent)
             }
 
-            // Agar binder pehle se chal raha hai aur permission bachi hai to popup trigger karega
             if (Shizuku.pingBinder() && Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
                 try {
                     Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE)
@@ -193,65 +185,45 @@ class MainActivity : AppCompatActivity() {
         if (isFirstLaunch) {
             AlertDialog.Builder(this)
                 .setTitle("Permissions Required")
-                .setMessage("Neon Game Booster needs Display Overlay, Battery Optimization, Notification, DND Policy, VPN, and Accessibility permissions to optimize your gameplay effectively.")
+                .setMessage("Neon Game Booster needs Overlay, VPN, Battery Optimization, and Accessibility permissions to optimize your gameplay effectively.")
                 .setPositiveButton("Accept") { _, _ ->
                     prefs.edit().putBoolean("is_first_launch", false).apply()
-                    requestAllAppPermissions()
+                    requestInitialPermissions()
                 }
                 .setNegativeButton("Decline") { dialog, _ ->
                     dialog.dismiss()
-                    Toast.makeText(this, "Some features may not work without permissions.", Toast.LENGTH_LONG).show()
                 }
                 .setCancelable(false)
                 .show()
         }
     }
 
-    private fun requestAllAppPermissions() {
+    private fun requestInitialPermissions() {
+        // 1. Android 13+ Post Notifications
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIF_PERMISSION_REQUEST_CODE)
             }
         }
 
+        // 2. Display Overlay
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             checkAndRequestOverlayPermission()
         }
 
+        // 3. Battery Optimizations
         if (!isBatteryOptimizationIgnored()) {
             requestIgnoreBatteryOptimizations()
         }
 
+        // 4. VPN Setup Handshake
         checkAndRequestVpnPermission()
 
-        // DND Policy Access (Call & Alert Blocking)
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !nm.isNotificationPolicyAccessGranted) {
-            try {
-                val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
-                startActivity(intent)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        // Notification Listener Access (Message Silent / Banner Dismiss)
-        val enabledListeners = Settings.Secure.getString(contentResolver, "enabled_notification_listeners") ?: ""
-        if (!enabledListeners.contains(packageName)) {
-            try {
-                val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                startActivity(intent)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        // Accessibility Service check & prompt
+        // 5. Accessibility Service
         if (!isAccessibilityServiceEnabled()) {
-            Toast.makeText(this, "Please enable Accessibility Service for DND & Auto-Cleaner", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Enable Neon Game Booster Accessibility Service", Toast.LENGTH_LONG).show()
             try {
-                val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                startActivity(intent)
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -270,15 +242,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkAndRequestVpnPermission() {
-        val vpnIntent = VpnService.prepare(this)
-        if (vpnIntent != null) {
-            startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
+        try {
+            val vpnIntent = VpnService.prepare(this)
+            if (vpnIntent != null) {
+                startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
     private fun checkAndRequestOverlayPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, "Allow 'Display over other apps' permission", Toast.LENGTH_LONG).show()
             val intent = Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:$packageName")
@@ -292,16 +267,12 @@ class MainActivity : AppCompatActivity() {
         when (requestCode) {
             VPN_REQUEST_CODE -> {
                 if (resultCode == RESULT_OK) {
-                    Toast.makeText(this, "VPN Connected Successfully", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "VPN Permission Denied", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "VPN Permission Granted", Toast.LENGTH_SHORT).show()
                 }
             }
             OVERLAY_REQUEST_CODE -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
                     Toast.makeText(this, "Overlay Permission Granted", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, "Overlay Permission Denied", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -327,6 +298,15 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateShizukuStatus()
+
+        // Agar user ne VPN Switch on rakha hai par permission baaki hai to seedha dialog prompt karega
+        val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("enable_vpn", true)) {
+            val vpnIntent = VpnService.prepare(this)
+            if (vpnIntent != null) {
+                startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
+            }
+        }
     }
 
     private fun updateShizukuStatus() {
