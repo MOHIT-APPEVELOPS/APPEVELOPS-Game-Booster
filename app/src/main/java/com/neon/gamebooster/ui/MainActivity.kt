@@ -41,7 +41,7 @@ class MainActivity : AppCompatActivity() {
     private var viewStatusLight: View? = null
     private var btnConnectShizuku: Button? = null
 
-    // Shizuku Listeners to sync status automatically in real-time
+    // Shizuku Listeners to sync status in real-time
     private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
         runOnUiThread { updateShizukuStatus() }
     }
@@ -122,8 +122,9 @@ class MainActivity : AppCompatActivity() {
             if (isChecked) checkAndRequestOverlayPermission()
         }
 
+        // Connect button flow
         btnConnectShizuku?.setOnClickListener {
-            requestShizukuPermission()
+            handleConnectShizukuClick()
         }
 
         btnSelectApps?.setOnClickListener {
@@ -150,6 +151,37 @@ class MainActivity : AppCompatActivity() {
         btnToggleBoost?.setOnClickListener {
             val intent = Intent(this, SelectedAppsActivity::class.java)
             startActivity(intent)
+        }
+    }
+
+    // Connect button click handler
+    private fun handleConnectShizukuClick() {
+        val shizukuPkg = "moe.shizuku.privileged.api"
+
+        if (!isPackageInstalled(shizukuPkg, packageManager)) {
+            // App nahi hai -> seedha Play Store khulega
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$shizukuPkg"))
+                startActivity(intent)
+            } catch (e: Exception) {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$shizukuPkg"))
+                startActivity(intent)
+            }
+        } else {
+            // App hai -> seedha Shizuku app open hoga
+            val launchIntent = packageManager.getLaunchIntentForPackage(shizukuPkg)
+            if (launchIntent != null) {
+                startActivity(launchIntent)
+            }
+
+            // Agar binder pehle se chal raha hai aur permission bachi hai to popup trigger karega
+            if (Shizuku.pingBinder() && Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+                try {
+                    Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
     }
 
@@ -275,47 +307,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateShizukuStatus() {
-        try {
-            if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
-                tvStatus.text = "Shizuku Engine: Connected"
-                tvStatus.setTextColor(Color.parseColor("#00E676"))
-                viewStatusLight?.setBackgroundResource(R.drawable.status_light_green)
-                btnConnectShizuku?.visibility = View.GONE
-            } else {
+        runOnUiThread {
+            try {
+                if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
+                    tvStatus.text = "Shizuku Engine: Connected"
+                    tvStatus.setTextColor(Color.parseColor("#00E676"))
+                    viewStatusLight?.setBackgroundResource(R.drawable.status_light_green)
+                    btnConnectShizuku?.visibility = View.GONE
+                } else {
+                    tvStatus.text = "Shizuku Engine: Disconnected"
+                    tvStatus.setTextColor(Color.parseColor("#FF2A55"))
+                    viewStatusLight?.setBackgroundResource(R.drawable.status_light_red)
+                    btnConnectShizuku?.visibility = View.VISIBLE
+                }
+            } catch (e: Exception) {
                 tvStatus.text = "Shizuku Engine: Disconnected"
                 tvStatus.setTextColor(Color.parseColor("#FF2A55"))
                 viewStatusLight?.setBackgroundResource(R.drawable.status_light_red)
                 btnConnectShizuku?.visibility = View.VISIBLE
             }
-        } catch (e: Exception) {
-            tvStatus.text = "Shizuku Engine: Not Installed"
-            tvStatus.setTextColor(Color.parseColor("#FF2A55"))
-            viewStatusLight?.setBackgroundResource(R.drawable.status_light_red)
-            btnConnectShizuku?.visibility = View.VISIBLE
-        }
-    }
-
-    private fun requestShizukuPermission() {
-        try {
-            if (!isPackageInstalled("moe.shizuku.privileged.api", packageManager)) {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=moe.shizuku.privileged.api"))
-                startActivity(intent)
-                Toast.makeText(this, "Please install Shizuku from Play Store", Toast.LENGTH_LONG).show()
-                return
-            }
-            if (Shizuku.pingBinder()) {
-                if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-                    Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE)
-                } else {
-                    Toast.makeText(this, "Shizuku is already connected!", Toast.LENGTH_SHORT).show()
-                    updateShizukuStatus()
-                }
-            } else {
-                Toast.makeText(this, "Shizuku service is not running!", Toast.LENGTH_LONG).show()
-                updateShizukuStatus()
-            }
-        } catch (e: Exception) {
-            Toast.makeText(this, "Shizuku Error: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
