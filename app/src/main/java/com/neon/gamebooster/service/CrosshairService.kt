@@ -89,7 +89,6 @@ class CrosshairService : Service() {
                 WindowManager.LayoutParams.TYPE_PHONE
             }
 
-            // Size ko chota karke 20dp box kiya gaya hai
             val density = resources.displayMetrics.density
             val sizePx = (20 * density).toInt()
 
@@ -110,7 +109,6 @@ class CrosshairService : Service() {
                 gravity = Gravity.CENTER
                 x = offsetX
                 y = offsetY
-                // Camera notch/cutout bypass for true screen center
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
                 }
@@ -180,13 +178,9 @@ class CrosshairService : Service() {
         super.onDestroy()
     }
 
-    /**
-     * Precision Micro Crosshair with Center Dot (Scope Reticle Aligned)
-     */
     private class SlimCrosshairView(context: Context) : View(context) {
         private val density = resources.displayMetrics.density
 
-        // Precision Line Paint (Neon Red)
         private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#FF0033")
             strokeWidth = 1.2f * density
@@ -194,7 +188,25 @@ class CrosshairService : Service() {
             strokeCap = Paint.Cap.SQUARE
         }
 
-        // Center Micro Dot Paint (Sharp alignment dot)
         private val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#00FF66")
+            style = Paint.Style.FILL
+        }
 
-            
+        override fun onDraw(canvas: Canvas) {
+            super.onDraw(canvas)
+            val cx = width / 2f
+            val cy = height / 2f
+
+            canvas.drawCircle(cx, cy, 1.2f * density, dotPaint)
+
+            val gap = 2.5f * density
+            val length = 5.5f * density
+
+            canvas.drawLine(cx - gap - length, cy, cx - gap, cy, linePaint)
+            canvas.drawLine(cx + gap, cy, cx + gap + length, cy, linePaint)
+            canvas.drawLine(cx, cy - gap - length, cx, cy - gap, linePaint)
+            canvas.drawLine(cx, cy + gap, cx, cy + gap + length, linePaint)
+        }
+    }
+}
