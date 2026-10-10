@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -58,27 +59,37 @@ class GameVpnService : VpnService() {
             .setOngoing(true)
             .build()
 
-        try {
-            startForeground(101, notification)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        startForeground(101, notification)
     }
 
     private fun setupVpn() {
         try {
             if (vpnInterface != null) return
 
-            val builder = Builder()
-                .addAddress("10.0.0.2", 32)
-                .addRoute("10.0.0.2", 32) // Sirf virtual IP route karega, DNS ya game traffic block nahi karega
-                .setSession("NeonGameBoosterVPN")
-                .setMtu(1500)
-                .setBlocking(false) // Non-blocking socket taaki socket OS freeze na kare
+            val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
+            val selectedGames = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
 
-            // Android system DNS aur baaki game network ko normal Wi-Fi/Mobile Data se pass karne ke liye
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                builder.allowBypass()
+            val builder = Builder()
+                .addAddress("10.120.0.1", 32)
+                .addRoute("0.0.0.0", 0) // Baaki apps ka internet VPN blackhole me daalega
+                .setSession("NeonPingIsolation")
+                .setMtu(1500)
+                .setBlocking(false)
+
+            // Game direct phone network use karega (Zero Latency + Direct Ping)
+            for (gamePkg in selectedGames) {
+                try {
+                    builder.addDisallowedApplication(gamePkg)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            // Current app ko bhi bypass rakhein taaki Shizuku & IPC crash na ho
+            try {
+                builder.addDisallowedApplication(packageName)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
 
             vpnInterface = builder.establish()
