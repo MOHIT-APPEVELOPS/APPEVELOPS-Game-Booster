@@ -58,7 +58,11 @@ class GameVpnService : VpnService() {
             .setOngoing(true)
             .build()
 
-        startForeground(101, notification)
+        try {
+            startForeground(101, notification)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun setupVpn() {
@@ -67,12 +71,12 @@ class GameVpnService : VpnService() {
 
             val builder = Builder()
                 .addAddress("10.0.0.2", 32)
-                .addRoute("10.0.0.2", 32) // Sirf virtual IP route karega, DNS ya poora internet block nahi karega
+                .addRoute("10.0.0.2", 32) // Sirf virtual IP route karega, DNS ya game traffic block nahi karega
                 .setSession("NeonGameBoosterVPN")
                 .setMtu(1500)
-                .setBlocking(false)
+                .setBlocking(false) // Non-blocking socket taaki socket OS freeze na kare
 
-            // Allow normal apps and system DNS to bypass local TUN
+            // Android system DNS aur baaki game network ko normal Wi-Fi/Mobile Data se pass karne ke liye
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 builder.allowBypass()
             }
