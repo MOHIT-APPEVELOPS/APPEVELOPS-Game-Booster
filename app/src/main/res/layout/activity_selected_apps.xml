@@ -6,16 +6,37 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Header Title -->
-    <TextView
+    <!-- Top Bar with Back Button and Header Title -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:paddingBottom="16dp"
-        android:text="Selected Games &amp; Apps"
-        android:textColor="#FF1744"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingBottom="16dp">
+
+        <ImageView
+            android:id="@+id/btnBack"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Back"
+            android:src="@drawable/ic_arrow_back" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="Selected Games &amp; Apps"
+            android:textColor="#FF1744"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <!-- Balanced spacing on right side for center alignment -->
+        <View
+            android:layout_width="32dp"
+            android:layout_height="32dp" />
+    </LinearLayout>
 
     <!-- Alphabetically Sorted Apps List -->
     <androidx.recyclerview.widget.RecyclerView
