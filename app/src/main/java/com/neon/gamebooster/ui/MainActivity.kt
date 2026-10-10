@@ -1,20 +1,23 @@
 package com.neon.gamebooster.ui
 
 import android.Manifest
-import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.view.accessibility.AccessibilityManager
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
@@ -22,11 +25,21 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.neon.gamebooster.R
 import com.neon.gamebooster.utils.CpuBoosterManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import rikka.shizuku.Shizuku
+
+data class HomeGameModel(
+    val appName: String,
+    val packageName: String,
+    val icon: Drawable?
+)
 
 class MainActivity : AppCompatActivity() {
 
@@ -39,6 +52,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvStatus: TextView
     private var viewStatusLight: View? = null
     private var btnConnectShizuku: Button? = null
+    
+    private val selectedGamesList = ArrayList<HomeGameModel>()
+    private lateinit var gamesAdapter: HomeGamesAdapter
 
     // Shizuku Listeners to sync status in real-time
     private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
@@ -79,7 +95,7 @@ class MainActivity : AppCompatActivity() {
 
         tvStatus = findViewById(R.id.tvStatus)
         viewStatusLight = findViewById(R.id.viewStatusLight)
-        btnConnectShizuku = findViewById<Button>(R.id.btnConnectShizuku)
+        btnConnectShizuku = findViewById(R.id.btnConnectShizuku)
         val btnSelectApps = findViewById<Button>(R.id.btnSelectApps)
         val btnDndSettings = findViewById<Button>(R.id.btnDndSettings)
         val btnAnimationSettings = findViewById<Button>(R.id.btnAnimationSettings)
@@ -92,12 +108,19 @@ class MainActivity : AppCompatActivity() {
         val switchSystemBoost = findViewById<Switch>(R.id.switchSystemBoost)
         val switchBatteryOptimization = findViewById<Switch>(R.id.switchBatteryOptimization)
         
+        // RecyclerView aur Adapter initialization ("No adapter attached" fix)
         rvSelectedGames = findViewById(R.id.rvSelectedGames)
-        rvSelectedGames.layoutManager = LinearLayoutManager(this)
+        rvSelectedGames.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        gamesAdapter = HomeGamesAdapter(selectedGamesList) { pkgName ->
+            // Click to launch game directly
+            val launchIntent = packageManager.getLaunchIntentForPackage(pkgName)
+            if (launchIntent != null) {
+                startActivity(launchIntent)
+            }
+        }
+        rvSelectedGames.adapter = gamesAdapter
 
         updateShizukuStatus()
-
-        // Step-by-step permissions prompt
         checkFirstLaunchPermissions()
 
         switchVpn?.isChecked = prefs.getBoolean("enable_vpn", true)
@@ -151,6 +174,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun loadSelectedGames() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
+            val savedSet = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
+            val tempList = ArrayList<HomeGameModel>()
+            val pm = packageManager
+
+            for (pkg in savedSet) {
+                try {
+                    val appInfo = pm.getApplicationInfo(pkg, 0)
+                    val label = pm.getApplicationLabel(appInfo).toString()
+                    val icon = pm.getApplicationIcon(appInfo)
+                    tempList.add(HomeGameModel(label, pkg, icon))
+                } catch (ignored: Exception) {}
+            }
+
+            withContext(Dispatchers.Main) {
+                selectedGamesList.clear()
+                selectedGamesList.addAll(tempList)
+                gamesAdapter.notifyDataSetChanged()
+            }
+        }
+    }
+
     private fun handleConnectShizukuClick() {
         val shizukuPkg = "moe.shizuku.privileged.api"
 
@@ -199,27 +246,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestInitialPermissions() {
-        // 1. Android 13+ Post Notifications
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), NOTIF_PERMISSION_REQUEST_CODE)
             }
         }
 
-        // 2. Display Overlay
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             checkAndRequestOverlayPermission()
         }
 
-        // 3. Battery Optimizations
         if (!isBatteryOptimizationIgnored()) {
             requestIgnoreBatteryOptimizations()
         }
 
-        // 4. VPN Setup Handshake
         checkAndRequestVpnPermission()
 
-        // 5. Accessibility Service
         if (!isAccessibilityServiceEnabled()) {
             Toast.makeText(this, "Enable Neon Game Booster Accessibility Service", Toast.LENGTH_LONG).show()
             try {
@@ -298,15 +340,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateShizukuStatus()
-
-        // Agar user ne VPN Switch on rakha hai par permission baaki hai to seedha dialog prompt karega
-        val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
-        if (prefs.getBoolean("enable_vpn", true)) {
-            val vpnIntent = VpnService.prepare(this)
-            if (vpnIntent != null) {
-                startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
-            }
-        }
+        loadSelectedGames()
     }
 
     private fun updateShizukuStatus() {
@@ -352,5 +386,35 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    // Inner Adapter for Home Selected Games Horizontal List
+    private class HomeGamesAdapter(
+        private val list: List<HomeGameModel>,
+        private val onItemClick: (String) -> Unit
+    ) : RecyclerView.Adapter<HomeGamesAdapter.GameViewHolder>() {
+
+        class GameViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val ivIcon: ImageView? = itemView.findViewById(R.id.ivAppIcon)
+            val tvName: TextView? = itemView.findViewById(R.id.tvAppName)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GameViewHolder {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_app, parent, false)
+            return GameViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: GameViewHolder, position: Int) {
+            val item = list[position]
+            holder.tvName?.text = item.appName
+            if (item.icon != null) {
+                holder.ivIcon?.setImageDrawable(item.icon)
+            }
+            holder.itemView.setOnClickListener {
+                onItemClick(item.packageName)
+            }
+        }
+
+        override fun getItemCount(): Int = list.size
     }
 }
