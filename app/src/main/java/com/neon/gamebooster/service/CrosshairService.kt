@@ -90,7 +90,7 @@ class CrosshairService : Service() {
                 WindowManager.LayoutParams.TYPE_PHONE
             }
 
-            // Crosshair overlay size (60dp box)
+            // Crosshair overlay size (40dp box)
             val sizePx = (40 * resources.displayMetrics.density).toInt()
 
             val params = WindowManager.LayoutParams(
@@ -111,6 +111,7 @@ class CrosshairService : Service() {
 
             windowManager?.addView(crosshairView, params)
             isViewAttached = true
+            crosshairView?.visibility = View.VISIBLE
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -138,7 +139,9 @@ class CrosshairService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_HIDE -> hideCrosshair()
+            ACTION_HIDE -> {
+                hideCrosshair()
+            }
             ACTION_SHOW -> {
                 if (isViewAttached) {
                     crosshairView?.visibility = View.VISIBLE
@@ -146,7 +149,12 @@ class CrosshairService : Service() {
                     showCrosshair()
                 }
             }
-            ACTION_STOP -> stopSelf()
+            ACTION_STOP -> {
+                removeCrosshairView()
+                stopForeground(true)
+                stopSelf()
+                return START_NOT_STICKY
+            }
             else -> {
                 if (isViewAttached) {
                     crosshairView?.visibility = View.VISIBLE
@@ -159,8 +167,8 @@ class CrosshairService : Service() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         removeCrosshairView()
+        super.onDestroy()
     }
 
     /**
