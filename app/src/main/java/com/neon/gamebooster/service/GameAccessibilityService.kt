@@ -1,6 +1,7 @@
 package com.neon.gamebooster.service
 
 import android.accessibilityservice.AccessibilityService
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -85,12 +86,18 @@ class GameAccessibilityService : AccessibilityService() {
     }
 
     private fun onGameOpened(prefs: android.content.SharedPreferences) {
-        // 1. Silent Auto Clean
+        // Active Game Flag for Notification Blocker
+        prefs.edit().putBoolean("is_game_actively_running", true).apply()
+
+        // 1. Apply DND System Mode
+        applyDndMode(true, prefs)
+
+        // 2. Silent Auto Clean
         if (prefs.getBoolean("enable_bg_killer", true) || prefs.getBoolean("enable_cache_clear", true)) {
             startService(Intent(this, AppAutoCleanerService::class.java))
         }
 
-        // 2. Start VPN
+        // 3. Start VPN
         if (prefs.getBoolean("enable_vpn", true)) {
             val vpnIntent = Intent(this, GameVpnService::class.java).apply {
                 action = GameVpnService.ACTION_START_VPN
@@ -98,7 +105,7 @@ class GameAccessibilityService : AccessibilityService() {
             startService(vpnIntent)
         }
 
-        // 3. Instant Crosshair Show
+        // 4. Instant Crosshair Show
         if (prefs.getBoolean("enable_crosshair", true)) {
             val crosshairIntent = Intent(this, CrosshairService::class.java).apply {
                 action = CrosshairService.ACTION_SHOW
@@ -110,7 +117,7 @@ class GameAccessibilityService : AccessibilityService() {
             }
         }
 
-        // 4. Shizuku Tweaks
+        // 5. Shizuku Tweaks
         try {
             if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
                 CpuBoosterManager.applyPerformanceMode()
@@ -124,23 +131,52 @@ class GameAccessibilityService : AccessibilityService() {
     }
 
     private fun onGameClosed(prefs: android.content.SharedPreferences) {
-        // Instant Hide & Stop Crosshair
+        // Active Game Flag Off
+        prefs.edit().putBoolean("is_game_actively_running", false).apply()
+
+        // 1. Restore Normal Sound & Notifications (Turn OFF DND)
+        applyDndMode(false, prefs)
+
+        // 2. Instant Hide & Stop Crosshair
         val stopCrosshairIntent = Intent(this, CrosshairService::class.java).apply {
             action = CrosshairService.ACTION_HIDE
         }
         startService(stopCrosshairIntent)
         stopService(Intent(this, CrosshairService::class.java))
 
-        // Stop VPN
+        // 3. Stop VPN
         val stopVpnIntent = Intent(this, GameVpnService::class.java).apply {
             action = GameVpnService.ACTION_STOP_VPN
         }
         startService(stopVpnIntent)
 
-        // Restore Animations
+        // 4. Restore Animations
         try {
             if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
                 CpuBoosterManager.resetAnimationsToNormal()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun applyDndMode(enable: Boolean, prefs: android.content.SharedPreferences) {
+        try {
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && nm.isNotificationPolicyAccessGranted) {
+                if (enable) {
+                    val isMasterDndOn = prefs.getBoolean("dnd_master_enabled", true)
+                    val isCallDndOn = prefs.getBoolean("dnd_block_calls", true)
+                    val isMsgDndOn = prefs.getBoolean("dnd_block_notifs", true)
+
+                    if (isMasterDndOn && (isCallDndOn || isMsgDndOn)) {
+                        // Complete Silence: No Calls, No Popups, No Alarms during match
+                        nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)
+                    }
+                } else {
+                    // Turn OFF DND, allow all calls and notifications normally
+                    nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
