@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.view.accessibility.AccessibilityEvent
+import androidx.core.content.ContextCompat
 import com.neon.gamebooster.utils.CpuBoosterManager
 
 class GameAccessibilityService : AccessibilityService() {
@@ -45,7 +46,7 @@ class GameAccessibilityService : AccessibilityService() {
 
         val packageName = event.packageName?.toString() ?: return
 
-        // 1. In-game transient overlays (volume, notification shade, input method) par ignore karein taaki flicker na ho
+        // 1. In-game transient overlays (volume bar, notification shade, input method) par ignore karein taaki flicker na ho
         if (packageName == "com.android.systemui" || packageName.contains("inputmethod")) {
             return
         }
@@ -68,7 +69,7 @@ class GameAccessibilityService : AccessibilityService() {
                 activeGamePackage = packageName
                 onGameOpened(prefs)
             } else {
-                // Game ke andar hi hai, crosshair state confirm rakhein bina restart kiye
+                // Game ke andar hi hai, crosshair state confirm rakhein
                 if (prefs.getBoolean("enable_crosshair", true)) {
                     val showIntent = Intent(this, CrosshairService::class.java).apply {
                         action = CrosshairService.ACTION_SHOW
@@ -89,7 +90,7 @@ class GameAccessibilityService : AccessibilityService() {
         // Active Game Flag for Notification Blocker
         prefs.edit().putBoolean("is_game_actively_running", true).apply()
 
-        // 1. Apply DND System Mode
+        // 1. DND Enable (Game Audio chalu rahega, Calls/Alerts mute rahenge)
         applyDndMode(true, prefs)
 
         // 2. Silent Auto Clean
@@ -97,12 +98,16 @@ class GameAccessibilityService : AccessibilityService() {
             startService(Intent(this, AppAutoCleanerService::class.java))
         }
 
-        // 3. Start VPN
+        // 3. Start VPN via Foreground Service (Ab 100% connect hoga)
         if (prefs.getBoolean("enable_vpn", true)) {
             val vpnIntent = Intent(this, GameVpnService::class.java).apply {
                 action = GameVpnService.ACTION_START_VPN
             }
-            startService(vpnIntent)
+            try {
+                ContextCompat.startForegroundService(this, vpnIntent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
         // 4. Instant Crosshair Show
@@ -110,10 +115,10 @@ class GameAccessibilityService : AccessibilityService() {
             val crosshairIntent = Intent(this, CrosshairService::class.java).apply {
                 action = CrosshairService.ACTION_SHOW
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(crosshairIntent)
-            } else {
-                startService(crosshairIntent)
+            try {
+                ContextCompat.startForegroundService(this, crosshairIntent)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
 
@@ -170,11 +175,11 @@ class GameAccessibilityService : AccessibilityService() {
                     val isMsgDndOn = prefs.getBoolean("dnd_block_notifs", true)
 
                     if (isMasterDndOn && (isCallDndOn || isMsgDndOn)) {
-                        // Complete Silence: No Calls, No Popups, No Alarms during match
-                        nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)
+                        // PRIORITY MODE: Calls aur heads-up popups mute rahenge, lekin Game/Media volume bilkul chalu rahega
+                        nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
                     }
                 } else {
-                    // Turn OFF DND, allow all calls and notifications normally
+                    // Turn OFF DND: Normal sound mode restore
                     nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
                 }
             }
