@@ -1,44 +1,49 @@
-package com.neon.gamebooster.services
+package com.neon.gamebooster.service
 
-import android.accessibilityservice.AccessibilityService
-import android.view.accessibility.AccessibilityEvent
-import android.view.accessibility.AccessibilityNodeInfo
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
+import android.os.IBinder
+import com.neon.gamebooster.utils.CpuBoosterManager
 
-class AppAutoCleanerService : AccessibilityService() {
+class AppAutoCleanerService : Service() {
 
-    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null) return
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
+        val isBgKillerEnabled = prefs.getBoolean("enable_bg_killer", true)
+        val isCacheClearEnabled = prefs.getBoolean("enable_cache_clear", true)
 
-        val rootNode = rootInActiveWindow ?: return
+        Thread {
+            try {
+                if (isBgKillerEnabled) {
+                    killNonSystemApps()
+                }
+                if (isCacheClearEnabled && CpuBoosterManager.isShizukuAvailableAndGranted()) {
+                    CpuBoosterManager.executeShizukuCommand("pm trim-caches 1000G")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            stopSelf()
+        }.start()
 
-        // Auto click "Force stop" or "Clear cache" buttons in system App Info page
-        clickButtonByText(rootNode, "Force stop")
-        clickButtonByText(rootNode, "FORCE STOP")
-        clickButtonByText(rootNode, "OK")
-        clickButtonByText(rootNode, "Clear cache")
-
-        rootNode.recycle()
+        return START_NOT_STICKY
     }
 
-    private fun clickButtonByText(nodeInfo: AccessibilityNodeInfo, text: String): Boolean {
-        val list = nodeInfo.findAccessibilityNodeInfosByText(text)
-        for (node in list) {
-            if (node.isClickable) {
-                node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                return true
-            } else {
-                var parent = node.parent
-                while (parent != null) {
-                    if (parent.isClickable) {
-                        parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                        return true
-                    }
-                    parent = parent.parent
+    private fun killNonSystemApps() {
+        val pm = packageManager
+        val packages = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+
+        for (app in packages) {
+            if (app.packageName != packageName && (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0) {
+                if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
+                    CpuBoosterManager.killBackgroundApp(app.packageName)
                 }
             }
         }
-        return false
     }
 
-    override fun onInterrupt() {}
+    override fun onBind(intent: Intent?): IBinder? = null
 }
