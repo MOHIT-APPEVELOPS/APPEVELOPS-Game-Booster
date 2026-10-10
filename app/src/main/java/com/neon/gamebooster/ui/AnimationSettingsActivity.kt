@@ -3,6 +3,7 @@ package com.neon.gamebooster.ui
 import android.content.Context
 import android.os.Bundle
 import android.widget.ArrayAdapter
+import android.widget.ImageView
 import android.widget.Spinner
 import android.widget.Switch
 import android.widget.Toast
@@ -18,6 +19,12 @@ class AnimationSettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_animation_settings)
+
+        // Top-left Back Arrow Button click listener
+        val btnBack = findViewById<ImageView>(R.id.btnBack)
+        btnBack?.setOnClickListener {
+            finish()
+        }
 
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
 
@@ -77,15 +84,17 @@ class AnimationSettingsActivity : AppCompatActivity() {
     }
 
     private fun applyScalesViaShizuku(window: Float, transition: Float, animator: Float) {
-        try {
-            if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
-                executeShizukuCommand("settings put global window_animation_scale $window")
-                executeShizukuCommand("settings put global transition_animation_scale $transition")
-                executeShizukuCommand("settings put global animator_duration_scale $animator")
+        Thread {
+            try {
+                if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
+                    executeShizukuCommand("settings put global window_animation_scale $window")
+                    executeShizukuCommand("settings put global transition_animation_scale $transition")
+                    executeShizukuCommand("settings put global animator_duration_scale $animator")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        }.start()
     }
 
     private fun executeShizukuCommand(command: String) {
