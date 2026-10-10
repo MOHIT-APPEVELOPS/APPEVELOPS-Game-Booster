@@ -60,6 +60,11 @@
         <activity
             android:name=".ui.SelectedAppsActivity"
             android:exported="false" />
+            
+        <!-- Nayi Permissions Activity -->
+        <activity
+            android:name=".ui.PermissionsActivity"
+            android:exported="false" />
 
         <!-- VPN Service -->
         <service
