@@ -62,7 +62,7 @@ class AppListActivity : AppCompatActivity() {
             }
         }
 
-        // A to Z Alphabetical Sorting Applied Here
+        // A to Z Alphabetical Sorting
         appList.sortBy { it.appName.lowercase(Locale.ROOT) }
 
         val adapter = AppListAdapter(appList)
@@ -84,7 +84,7 @@ class AppListAdapter(private val appList: List<AppModel>) :
         val cbSelect: CheckBox = itemView.findViewById(R.id.cbSelect)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_app, parent, false)
         return AppViewHolder(view)
@@ -94,7 +94,7 @@ class AppListAdapter(private val appList: List<AppModel>) :
         val item = appList[position]
         holder.tvName.text = item.appName
         
-        // RecyclerView recycling glitch fix
+        // RecyclerView recycling fix
         holder.cbSelect.setOnCheckedChangeListener(null)
         holder.cbSelect.isChecked = item.isSelected
 
@@ -109,5 +109,4 @@ class AppListAdapter(private val appList: List<AppModel>) :
     }
 
     override fun getItemCount(): Int = appList.size
-    }
-    
+}
