@@ -4,12 +4,14 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.view.View
 import android.view.accessibility.AccessibilityManager
 import android.widget.Button
 import android.widget.Switch
@@ -36,23 +38,26 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var rvSelectedGames: RecyclerView
     private lateinit var tvStatus: TextView
+    private var viewStatusLight: View? = null
+    private var btnConnectShizuku: Button? = null
 
     // Shizuku Listeners to sync status automatically in real-time
     private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
-        updateShizukuStatus()
+        runOnUiThread { updateShizukuStatus() }
     }
 
     private val binderDeadListener = Shizuku.OnBinderDeadListener {
-        updateShizukuStatus()
+        runOnUiThread { updateShizukuStatus() }
     }
 
     private val permissionResultListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
         if (requestCode == SHIZUKU_PERMISSION_REQUEST_CODE) {
-            if (grantResult == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Shizuku Permission Granted!", Toast.LENGTH_SHORT).show()
-                updateShizukuStatus()
-            } else {
-                Toast.makeText(this, "Shizuku Permission Denied", Toast.LENGTH_SHORT).show()
+            runOnUiThread {
+                if (grantResult == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Shizuku Permission Granted!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Shizuku Permission Denied", Toast.LENGTH_SHORT).show()
+                }
                 updateShizukuStatus()
             }
         }
@@ -74,7 +79,8 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
 
         tvStatus = findViewById(R.id.tvStatus)
-        val btnConnectShizuku = findViewById<Button>(R.id.btnConnectShizuku)
+        viewStatusLight = findViewById(R.id.viewStatusLight)
+        btnConnectShizuku = findViewById<Button>(R.id.btnConnectShizuku)
         val btnSelectApps = findViewById<Button>(R.id.btnSelectApps)
         val btnDndSettings = findViewById<Button>(R.id.btnDndSettings)
         val btnAnimationSettings = findViewById<Button>(R.id.btnAnimationSettings)
@@ -140,7 +146,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Updated: START SERVICES button ab SelectedAppsActivity wali window kholega
+        // START SERVICES button SelectedAppsActivity wali window kholega
         btnToggleBoost?.setOnClickListener {
             val intent = Intent(this, SelectedAppsActivity::class.java)
             startActivity(intent)
@@ -272,14 +278,20 @@ class MainActivity : AppCompatActivity() {
         try {
             if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
                 tvStatus.text = "Shizuku Engine: Connected"
-                tvStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_dark))
+                tvStatus.setTextColor(Color.parseColor("#00E676"))
+                viewStatusLight?.setBackgroundResource(R.drawable.status_light_green)
+                btnConnectShizuku?.visibility = View.GONE
             } else {
                 tvStatus.text = "Shizuku Engine: Disconnected"
-                tvStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark))
+                tvStatus.setTextColor(Color.parseColor("#FF2A55"))
+                viewStatusLight?.setBackgroundResource(R.drawable.status_light_red)
+                btnConnectShizuku?.visibility = View.VISIBLE
             }
         } catch (e: Exception) {
             tvStatus.text = "Shizuku Engine: Not Installed"
-            tvStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark))
+            tvStatus.setTextColor(Color.parseColor("#FF2A55"))
+            viewStatusLight?.setBackgroundResource(R.drawable.status_light_red)
+            btnConnectShizuku?.visibility = View.VISIBLE
         }
     }
 
@@ -296,9 +308,11 @@ class MainActivity : AppCompatActivity() {
                     Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE)
                 } else {
                     Toast.makeText(this, "Shizuku is already connected!", Toast.LENGTH_SHORT).show()
+                    updateShizukuStatus()
                 }
             } else {
                 Toast.makeText(this, "Shizuku service is not running!", Toast.LENGTH_LONG).show()
+                updateShizukuStatus()
             }
         } catch (e: Exception) {
             Toast.makeText(this, "Shizuku Error: ${e.message}", Toast.LENGTH_SHORT).show()
