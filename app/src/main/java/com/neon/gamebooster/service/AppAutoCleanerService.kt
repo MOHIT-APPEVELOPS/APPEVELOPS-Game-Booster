@@ -1,5 +1,6 @@
 package com.neon.gamebooster.service
 
+import android.app.ActivityManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -13,16 +14,15 @@ class AppAutoCleanerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
         val isBgKillerEnabled = prefs.getBoolean("enable_bg_killer", true)
-        val isCacheClearEnabled = prefs.getBoolean("enable_cache_clear", true)
 
         Thread {
             try {
                 if (isBgKillerEnabled) {
                     killNonSystemApps()
                 }
-                if (isCacheClearEnabled && CpuBoosterManager.isShizukuAvailableAndGranted()) {
-                    CpuBoosterManager.executeShizukuCommand("pm trim-caches 1000G")
-                }
+                // Memory GC
+                System.gc()
+                Runtime.getRuntime().gc()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -33,13 +33,16 @@ class AppAutoCleanerService : Service() {
     }
 
     private fun killNonSystemApps() {
+        val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val pm = packageManager
         val packages = pm.getInstalledApplications(PackageManager.GET_META_DATA)
 
         for (app in packages) {
             if (app.packageName != packageName && (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0) {
-                if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
-                    CpuBoosterManager.killBackgroundApp(app.packageName)
+                try {
+                    am.killBackgroundProcesses(app.packageName)
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }
         }
