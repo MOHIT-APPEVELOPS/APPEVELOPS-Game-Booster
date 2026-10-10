@@ -63,14 +63,14 @@ class GameAccessibilityService : AccessibilityService() {
             return
         }
 
-        // 3. Target game focused hai -> Instant Show
+        // 3. Target game focused hai -> Instant Show / Resume
         if (selectedGames.contains(packageName)) {
             if (activeGamePackage != packageName) {
                 activeGamePackage = packageName
                 onGameOpened(prefs)
             } else {
                 // Game ke andar hi hai, crosshair state confirm rakhein
-                if (prefs.getBoolean("enable_crosshair", true)) {
+                if (prefs.getBoolean("enable_crosshair", false)) {
                     val showIntent = Intent(this, CrosshairService::class.java).apply {
                         action = CrosshairService.ACTION_SHOW
                     }
@@ -78,7 +78,7 @@ class GameAccessibilityService : AccessibilityService() {
                 }
             }
         } else {
-            // Kisi doosri non-game app (WhatsApp, Chrome etc.) par switch kiya -> Instant Exit
+            // Kisi doosri non-game app (WhatsApp, Chrome etc.) par switch kiya -> Instant Exit / Pause
             if (activeGamePackage != null) {
                 activeGamePackage = null
                 onGameClosed(prefs)
@@ -94,12 +94,19 @@ class GameAccessibilityService : AccessibilityService() {
         applyDndMode(true, prefs)
 
         // 2. Silent Auto Clean
-        if (prefs.getBoolean("enable_bg_killer", true) || prefs.getBoolean("enable_cache_clear", true)) {
-            startService(Intent(this, AppAutoCleanerService::class.java))
+        if (prefs.getBoolean("enable_bg_killer", false) || prefs.getBoolean("enable_cache_clear", false)) {
+            val cleanerIntent = Intent(this, AppAutoCleanerService::class.java).apply {
+                action = AppAutoCleanerService.ACTION_START
+            }
+            try {
+                ContextCompat.startForegroundService(this, cleanerIntent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
-        // 3. Start VPN via Foreground Service (Ab 100% connect hoga)
-        if (prefs.getBoolean("enable_vpn", true)) {
+        // 3. Start VPN via Foreground Service
+        if (prefs.getBoolean("enable_vpn", false)) {
             val vpnIntent = Intent(this, GameVpnService::class.java).apply {
                 action = GameVpnService.ACTION_START_VPN
             }
@@ -111,7 +118,7 @@ class GameAccessibilityService : AccessibilityService() {
         }
 
         // 4. Instant Crosshair Show
-        if (prefs.getBoolean("enable_crosshair", true)) {
+        if (prefs.getBoolean("enable_crosshair", false)) {
             val crosshairIntent = Intent(this, CrosshairService::class.java).apply {
                 action = CrosshairService.ACTION_SHOW
             }
@@ -126,9 +133,9 @@ class GameAccessibilityService : AccessibilityService() {
         try {
             if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
                 CpuBoosterManager.applyPerformanceMode()
-                CpuBoosterManager.setWindowAnimationScale(prefs.getBoolean("enable_window_anim", true))
-                CpuBoosterManager.setTransitionAnimationScale(prefs.getBoolean("enable_transition_anim", true))
-                CpuBoosterManager.setAnimatorDurationScale(prefs.getBoolean("enable_animator_anim", true))
+                CpuBoosterManager.setWindowAnimationScale(prefs.getBoolean("enable_window_anim", false))
+                CpuBoosterManager.setTransitionAnimationScale(prefs.getBoolean("enable_transition_anim", false))
+                CpuBoosterManager.setAnimatorDurationScale(prefs.getBoolean("enable_animator_anim", false))
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -154,8 +161,16 @@ class GameAccessibilityService : AccessibilityService() {
             action = GameVpnService.ACTION_STOP_VPN
         }
         startService(stopVpnIntent)
+        stopService(Intent(this, GameVpnService::class.java))
 
-        // 4. Restore Animations
+        // 4. Stop Auto Cleaner Service (No lingering notifications)
+        val stopCleanerIntent = Intent(this, AppAutoCleanerService::class.java).apply {
+            action = AppAutoCleanerService.ACTION_STOP
+        }
+        startService(stopCleanerIntent)
+        stopService(Intent(this, AppAutoCleanerService::class.java))
+
+        // 5. Restore Animations
         try {
             if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
                 CpuBoosterManager.resetAnimationsToNormal()
@@ -170,16 +185,14 @@ class GameAccessibilityService : AccessibilityService() {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && nm.isNotificationPolicyAccessGranted) {
                 if (enable) {
-                    val isMasterDndOn = prefs.getBoolean("dnd_master_enabled", true)
-                    val isCallDndOn = prefs.getBoolean("dnd_block_calls", true)
-                    val isMsgDndOn = prefs.getBoolean("dnd_block_notifs", true)
+                    val isMasterDndOn = prefs.getBoolean("dnd_master_enabled", false)
+                    val isCallDndOn = prefs.getBoolean("dnd_block_calls", false)
+                    val isMsgDndOn = prefs.getBoolean("dnd_block_notifs", false)
 
                     if (isMasterDndOn && (isCallDndOn || isMsgDndOn)) {
-                        // PRIORITY MODE: Calls aur heads-up popups mute rahenge, lekin Game/Media volume bilkul chalu rahega
                         nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
                     }
                 } else {
-                    // Turn OFF DND: Normal sound mode restore
                     nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
                 }
             }
