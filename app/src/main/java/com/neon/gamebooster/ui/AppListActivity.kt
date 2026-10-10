@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -28,6 +29,12 @@ class AppListActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_app_list)
+
+        // Top-left Back Arrow Button click listener
+        val btnBack = findViewById<ImageView>(R.id.btnBack)
+        btnBack?.setOnClickListener {
+            finish()
+        }
 
         val rvApps = findViewById<RecyclerView>(R.id.rvApps)
         val btnSave = findViewById<Button>(R.id.btnSaveSelection)
@@ -77,7 +84,7 @@ class AppListAdapter(private val appList: List<AppModel>) :
         val cbSelect: CheckBox = itemView.findViewById(R.id.cbSelect)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_app, parent, false)
         return AppViewHolder(view)
@@ -102,4 +109,5 @@ class AppListAdapter(private val appList: List<AppModel>) :
     }
 
     override fun getItemCount(): Int = appList.size
-}
+    }
+    
