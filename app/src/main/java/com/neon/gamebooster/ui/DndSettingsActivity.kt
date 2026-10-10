@@ -2,6 +2,7 @@ package com.neon.gamebooster.ui
 
 import android.content.Context
 import android.os.Bundle
+import android.widget.ImageView
 import android.widget.Switch
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -12,6 +13,12 @@ class DndSettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dnd_settings)
+
+        // Top-left Back Arrow Button click listener
+        val btnBack = findViewById<ImageView>(R.id.btnBack)
+        btnBack?.setOnClickListener {
+            finish()
+        }
 
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
 
