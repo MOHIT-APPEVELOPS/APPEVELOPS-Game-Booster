@@ -8,6 +8,35 @@ import rikka.shizuku.Shizuku
 
 object CpuBoosterManager {
 
+    // Shizuku Binder Listeners to establish connection automatically on app start
+    private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
+        // Shizuku binder connected successfully
+    }
+
+    private val binderDeadListener = Shizuku.OnBinderDeadListener {
+        // Shizuku binder died
+    }
+
+    init {
+        try {
+            Shizuku.addBinderReceivedListener(binderReceivedListener)
+            Shizuku.addBinderDeadListener(binderDeadListener)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    // Request Shizuku Permission explicitly when user clicks connect button
+    fun requestShizukuPermission() {
+        try {
+            if (Shizuku.pingBinder() && Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
+                Shizuku.requestPermission(0)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     // 1. Shizuku Status and Permission Check
     fun isShizukuAvailableAndGranted(): Boolean {
         return try {
