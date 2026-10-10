@@ -13,13 +13,13 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.neon.gamebooster.utils.CpuBoosterManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import rikka.shizuku.Shizuku
 
 class AppAutoCleanerService : Service() {
 
@@ -115,11 +115,10 @@ class AppAutoCleanerService : Service() {
         val selectedGames = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
 
         if (isBgKillerEnabled) {
-            // 1. Shizuku Privileged Cache Trim (Real System Cache Purge)
+            // 1. Shizuku Privileged Cache Trim (Safe execution through CpuBoosterManager)
             try {
-                if (Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
-                    val process = Shizuku.newProcess(arrayOf("pm", "trim-caches", "4096M"), null, null)
-                    process.waitFor()
+                if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
+                    CpuBoosterManager.executeShizukuCommand("pm trim-caches 4096M")
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
