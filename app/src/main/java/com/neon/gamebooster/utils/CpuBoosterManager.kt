@@ -82,35 +82,39 @@ object CpuBoosterManager {
             "settings put global transition_animation_scale 1.0",
             "settings put global animator_duration_scale 1.0"
         )
-        if (isShizukuAvailableAndGranted()) {
-            try {
-                val newProcessMethod = Shizuku::class.java.getDeclaredMethod(
-                    "newProcess",
-                    Array<String>::class.java,
-                    Array<String>::class.java,
-                    String::class.java
-                )
-                newProcessMethod.isAccessible = true
-                val process = newProcessMethod.invoke(
-                    null,
-                    arrayOf("sh", "-c", commands.joinToString(" && ")),
-                    null,
-                    null
-                ) as Process
-                process.waitFor()
-            } catch (e: Exception) {
-                e.printStackTrace()
+        Thread {
+            if (isShizukuAvailableAndGranted()) {
+                try {
+                    val newProcessMethod = Shizuku::class.java.getDeclaredMethod(
+                        "newProcess",
+                        Array<String>::class.java,
+                        Array<String>::class.java,
+                        String::class.java
+                    )
+                    newProcessMethod.isAccessible = true
+                    val process = newProcessMethod.invoke(
+                        null,
+                        arrayOf("sh", "-c", commands.joinToString(" && ")),
+                        null,
+                        null
+                    ) as Process
+                    process.waitFor()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
-        }
+        }.start()
     }
 
-    // Command Dispatcher (Shizuku + Shell Fallback)
+    // Command Dispatcher (Shizuku + Shell Fallback in background thread)
     private fun executeCommand(command: String) {
-        if (isShizukuAvailableAndGranted()) {
-            executeShizukuCommand(command)
-        } else {
-            executeShellCommand(command)
-        }
+        Thread {
+            if (isShizukuAvailableAndGranted()) {
+                executeShizukuCommand(command)
+            } else {
+                executeShellCommand(command)
+            }
+        }.start()
     }
 
     // 2. CPU Performance Mode Execution
@@ -120,37 +124,49 @@ object CpuBoosterManager {
 
     // 3. Silent Auto Clean & Boost System
     fun autoCleanAndBoostSystem(context: Context, gamePackageName: String) {
-        // Step A: Memory Garbage Collection
-        try {
-            System.gc()
-            Runtime.getRuntime().gc()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        // Step B: Kill Background Apps
-        try {
-            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-            val pm = context.packageManager
-            val packages = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-
-            for (app in packages) {
-                if (app.packageName != context.packageName &&
-                    app.packageName != gamePackageName &&
-                    (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0) {
-                    
-                    am.killBackgroundProcesses(app.packageName)
-                    executeCommand("am force-stop ${app.packageName}")
-                }
+        Thread {
+            // Step A: Memory Garbage Collection
+            try {
+                System.gc()
+                Runtime.getRuntime().gc()
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
 
-        // Step C: Cache & Performance
-        executeCommand("pm trim-caches 1000G")
-        executeCommand("am kill-all")
-        executeCommand("cmd power set-fixed-performance-mode-enabled true")
+            // Step B: Kill Background Apps
+            try {
+                val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                val pm = context.packageManager
+                val packages = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+
+                for (app in packages) {
+                    if (app.packageName != context.packageName &&
+                        app.packageName != gamePackageName &&
+                        (app.flags and ApplicationInfo.FLAG_SYSTEM) == 0) {
+                        
+                        am.killBackgroundProcesses(app.packageName)
+                        if (isShizukuAvailableAndGranted()) {
+                            executeShizukuCommand("am force-stop ${app.packageName}")
+                        } else {
+                            executeShellCommand("am force-stop ${app.packageName}")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            // Step C: Cache & Performance
+            if (isShizukuAvailableAndGranted()) {
+                executeShizukuCommand("pm trim-caches 1000G")
+                executeShizukuCommand("am kill-all")
+                executeShizukuCommand("cmd power set-fixed-performance-mode-enabled true")
+            } else {
+                executeShellCommand("pm trim-caches 1000G")
+                executeShellCommand("am kill-all")
+                executeShellCommand("cmd power set-fixed-performance-mode-enabled true")
+            }
+        }.start()
     }
 
     // 4. Device Hardware & Performance Profiling Helper (Zero Permissions Required)
