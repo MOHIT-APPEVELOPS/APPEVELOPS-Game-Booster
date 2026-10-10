@@ -109,4 +109,5 @@ class AppListAdapter(private val appList: List<AppModel>) :
     }
 
     override fun getItemCount(): Int = appList.size
-}
+    }
+    
