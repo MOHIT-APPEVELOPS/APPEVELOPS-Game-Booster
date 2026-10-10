@@ -16,6 +16,7 @@ import rikka.shizuku.Shizuku
 class GameAccessibilityService : AccessibilityService() {
 
     private var activeGamePackage: String? = null
+    private var isServicesRunning = false
     private val defaultLauncherPackages = HashSet<String>()
     
     // Rapid event execution rokne ke liye throttle mechanism
@@ -66,9 +67,9 @@ class GameAccessibilityService : AccessibilityService() {
             return
         }
 
-        // 300ms se kam time ke repeated duplicate triggers ko drop karein
+        // Duplicate triggers throttle
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastEventTimestamp < 300) {
+        if (currentTime - lastEventTimestamp < 150) {
             return
         }
         lastEventTimestamp = currentTime
@@ -76,7 +77,7 @@ class GameAccessibilityService : AccessibilityService() {
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
         val selectedGames = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
 
-        // 1. Home Screen Detection -> Instant Cleanup
+        // 1. Home Screen Detection -> Full Stop & Cleanup
         if (defaultLauncherPackages.contains(packageName) || packageName.contains("launcher")) {
             if (activeGamePackage != null) {
                 activeGamePackage = null
@@ -85,23 +86,25 @@ class GameAccessibilityService : AccessibilityService() {
             return
         }
 
-        // 2. Selected Game Focused
+        // 2. Selected Game Focused -> Instant Launch ya Instant Resume
         if (selectedGames.contains(packageName)) {
-            if (activeGamePackage != packageName) {
-                activeGamePackage = packageName
+            activeGamePackage = packageName
+            if (!isServicesRunning) {
                 onGameOpened(prefs)
+            } else {
+                quickResumeGameFeatures(prefs)
             }
         } else {
-            // Kisi third-party app (WhatsApp, Browser etc.) par switch hone par pause/stop karein
-            if (activeGamePackage != null) {
-                activeGamePackage = null
-                onGameClosed(prefs)
+            // Non-game app par switch hua -> Pause mode (Kill nahi hoga)
+            if (activeGamePackage != null && isServicesRunning) {
+                quickPauseGameFeatures(prefs)
             }
         }
     }
 
     private fun onGameOpened(prefs: android.content.SharedPreferences) {
         try {
+            isServicesRunning = true
             prefs.edit().putBoolean("is_game_actively_running", true).apply()
 
             // 1. DND Optimization
@@ -139,8 +142,38 @@ class GameAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * Instant Resume: Jab user game par wapas tap kare
+     * Service re-create nahi hogi, seedha overlay aur state resume hogi
+     */
+    private fun quickResumeGameFeatures(prefs: android.content.SharedPreferences) {
+        prefs.edit().putBoolean("is_game_actively_running", true).apply()
+        applyDndMode(true, prefs)
+
+        if (prefs.getBoolean("enable_crosshair", false)) {
+            val showIntent = Intent(this, CrosshairService::class.java).apply {
+                action = CrosshairService.ACTION_SHOW
+            }
+            startService(showIntent)
+        }
+    }
+
+    /**
+     * Instant Pause: Dusri app par switch hone par overlay hide hogi, process zinda rahega
+     */
+    private fun quickPauseGameFeatures(prefs: android.content.SharedPreferences) {
+        prefs.edit().putBoolean("is_game_actively_running", false).apply()
+        applyDndMode(false, prefs)
+
+        val hideIntent = Intent(this, CrosshairService::class.java).apply {
+            action = CrosshairService.ACTION_HIDE
+        }
+        startService(hideIntent)
+    }
+
     private fun onGameClosed(prefs: android.content.SharedPreferences) {
         try {
+            isServicesRunning = false
             prefs.edit().putBoolean("is_game_actively_running", false).apply()
 
             // 1. Restore Normal Audio/Notifications
@@ -148,12 +181,15 @@ class GameAccessibilityService : AccessibilityService() {
 
             // 2. Stop Crosshair Immediately
             safeStopCustomService(CrosshairService::class.java, CrosshairService.ACTION_HIDE)
+            stopService(Intent(this, CrosshairService::class.java))
 
             // 3. Stop VPN
             safeStopCustomService(GameVpnService::class.java, GameVpnService.ACTION_STOP_VPN)
+            stopService(Intent(this, GameVpnService::class.java))
 
             // 4. Stop Auto Cleaner
             safeStopCustomService(AppAutoCleanerService::class.java, AppAutoCleanerService.ACTION_STOP)
+            stopService(Intent(this, AppAutoCleanerService::class.java))
 
             // 5. Restore Animations via Shizuku if active
             safeExecuteShizukuTweaks(prefs, isEnabling = false)
@@ -175,7 +211,6 @@ class GameAccessibilityService : AccessibilityService() {
                     startService(serviceIntent)
                 }
             } catch (e: Throwable) {
-                // Background start restriction bypass fallback
                 try {
                     startService(serviceIntent)
                 } catch (ignored: Throwable) {}
@@ -192,7 +227,6 @@ class GameAccessibilityService : AccessibilityService() {
                 action = stopAction
             }
             startService(stopIntent)
-            stopService(Intent(this, serviceClass))
         } catch (e: Throwable) {
             e.printStackTrace()
         }
@@ -203,7 +237,6 @@ class GameAccessibilityService : AccessibilityService() {
      */
     private fun safeExecuteShizukuTweaks(prefs: android.content.SharedPreferences, isEnabling: Boolean) {
         try {
-            // Ping binder safe check
             if (Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
                 if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
                     if (isEnabling) {
@@ -216,9 +249,7 @@ class GameAccessibilityService : AccessibilityService() {
                     }
                 }
             }
-        } catch (e: Throwable) {
-            // Shizuku band hone par silently ignore karega, crash nahi aane dega
-        }
+        } catch (ignored: Throwable) {}
     }
 
     private fun applyDndMode(enable: Boolean, prefs: android.content.SharedPreferences) {
