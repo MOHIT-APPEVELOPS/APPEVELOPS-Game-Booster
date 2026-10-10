@@ -5,13 +5,11 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ServiceInfo
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
 import androidx.core.app.NotificationCompat
 import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
 
 class GameVpnService : VpnService() {
@@ -60,19 +58,7 @@ class GameVpnService : VpnService() {
             .setOngoing(true)
             .build()
 
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                // System default safe foreground type fallback
-                startForeground(101, notification)
-            } else {
-                startForeground(101, notification)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            try {
-                startForeground(101, notification)
-            } catch (ignored: Exception) {}
-        }
+        startForeground(101, notification)
     }
 
     private fun setupVpn() {
@@ -80,13 +66,16 @@ class GameVpnService : VpnService() {
             if (vpnInterface != null) return
 
             val builder = Builder()
-                .addAddress("10.0.0.2", 24)
-                .addRoute("10.0.0.0", 24) // Local ping isolation route
-                .addDnsServer("1.1.1.1")
-                .addDnsServer("8.8.8.8")
+                .addAddress("10.0.0.2", 32)
+                .addRoute("10.0.0.2", 32) // Sirf virtual IP route karega, DNS ya poora internet block nahi karega
                 .setSession("NeonGameBoosterVPN")
                 .setMtu(1500)
-                .setBlocking(false) // Non-blocking socket taaki OS interface freeze na ho
+                .setBlocking(false)
+
+            // Allow normal apps and system DNS to bypass local TUN
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                builder.allowBypass()
+            }
 
             vpnInterface = builder.establish()
 
@@ -107,7 +96,7 @@ class GameVpnService : VpnService() {
                 while (isRunning.get() && !Thread.currentThread().isInterrupted) {
                     val length = inputStream.read(buffer)
                     if (length <= 0) {
-                        Thread.sleep(50)
+                        Thread.sleep(100)
                     }
                 }
             } catch (e: InterruptedException) {
