@@ -37,9 +37,39 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rvSelectedGames: RecyclerView
     private lateinit var tvStatus: TextView
 
+    // Shizuku Listeners to sync status automatically in real-time
+    private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
+        updateShizukuStatus()
+    }
+
+    private val binderDeadListener = Shizuku.OnBinderDeadListener {
+        updateShizukuStatus()
+    }
+
+    private val permissionResultListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
+        if (requestCode == SHIZUKU_PERMISSION_REQUEST_CODE) {
+            if (grantResult == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Shizuku Permission Granted!", Toast.LENGTH_SHORT).show()
+                updateShizukuStatus()
+            } else {
+                Toast.makeText(this, "Shizuku Permission Denied", Toast.LENGTH_SHORT).show()
+                updateShizukuStatus()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Register Shizuku Listeners
+        try {
+            Shizuku.addBinderReceivedListener(binderReceivedListener)
+            Shizuku.addBinderDeadListener(binderDeadListener)
+            Shizuku.addRequestPermissionResultListener(permissionResultListener)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
 
@@ -283,6 +313,17 @@ class MainActivity : AppCompatActivity() {
             false
         } catch (e: Exception) {
             false
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            Shizuku.removeBinderReceivedListener(binderReceivedListener)
+            Shizuku.removeBinderDeadListener(binderDeadListener)
+            Shizuku.removeRequestPermissionResultListener(permissionResultListener)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }
