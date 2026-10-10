@@ -36,7 +36,7 @@ class GameVpnService : VpnService() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        
+
         return START_STICKY
     }
 
@@ -68,24 +68,28 @@ class GameVpnService : VpnService() {
 
             val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
             val selectedGames = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
+            val pm = packageManager
 
             val builder = Builder()
-                .addAddress("10.120.0.1", 32)
-                .addRoute("0.0.0.0", 0) // Baaki apps ka internet VPN blackhole me daalega
+                // Valid /24 subnet address taaki Android OS interface ko reject na kare
+                .addAddress("10.120.0.2", 24)
+                .addRoute("0.0.0.0", 0)
+                .addDnsServer("8.8.8.8")
                 .setSession("NeonPingIsolation")
                 .setMtu(1500)
                 .setBlocking(false)
 
-            // Game direct phone network use karega (Zero Latency + Direct Ping)
+            // Selected games ko safe bypass (direct network connection for zero ping)
             for (gamePkg in selectedGames) {
                 try {
+                    pm.getPackageInfo(gamePkg, 0)
                     builder.addDisallowedApplication(gamePkg)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
 
-            // Current app ko bhi bypass rakhein taaki Shizuku & IPC crash na ho
+            // Neon Game Booster app ko bhi bypass rakhein taaki Shizuku/IPC disconnect na ho
             try {
                 builder.addDisallowedApplication(packageName)
             } catch (e: Exception) {
@@ -93,6 +97,15 @@ class GameVpnService : VpnService() {
             }
 
             vpnInterface = builder.establish()
+
+            // Fallback: Agar kisi custom ROM par default route fail ho
+            if (vpnInterface == null) {
+                val fallbackBuilder = Builder()
+                    .addAddress("10.120.0.2", 24)
+                    .addRoute("10.120.0.0", 24)
+                    .setSession("NeonPingIsolation")
+                vpnInterface = fallbackBuilder.establish()
+            }
 
             if (vpnInterface != null) {
                 isRunning.set(true)
@@ -133,7 +146,7 @@ class GameVpnService : VpnService() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        
+
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -144,7 +157,7 @@ class GameVpnService : VpnService() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        
+
         stopSelf()
     }
 
