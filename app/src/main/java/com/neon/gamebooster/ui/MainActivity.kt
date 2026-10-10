@@ -29,6 +29,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.neon.gamebooster.R
+import com.neon.gamebooster.service.AppAutoCleanerService
+import com.neon.gamebooster.service.CrosshairService
+import com.neon.gamebooster.service.GameVpnService
 import com.neon.gamebooster.utils.CpuBoosterManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -48,13 +51,19 @@ class MainActivity : AppCompatActivity() {
     private val SHIZUKU_PERMISSION_REQUEST_CODE = 102
     private val NOTIF_PERMISSION_REQUEST_CODE = 103
 
-    private lateinit var rvSelectedGames: RecyclerView
+    private var rvSelectedGames: RecyclerView? = null
     private lateinit var tvStatus: TextView
     private var viewStatusLight: View? = null
     private var btnConnectShizuku: Button? = null
+    private var btnSettings: ImageView? = null
+    private var btnStopServices: Button? = null
+
+    private var switchVpn: Switch? = null
+    private var switchCrosshair: Switch? = null
+    private var switchBatteryOptimization: Switch? = null
     
     private val selectedGamesList = ArrayList<HomeGameModel>()
-    private lateinit var gamesAdapter: HomeGamesAdapter
+    private var gamesAdapter: HomeGamesAdapter? = null
 
     // Shizuku Listeners to sync status in real-time
     private val binderReceivedListener = Shizuku.OnBinderReceivedListener {
@@ -96,52 +105,105 @@ class MainActivity : AppCompatActivity() {
         tvStatus = findViewById(R.id.tvStatus)
         viewStatusLight = findViewById(R.id.viewStatusLight)
         btnConnectShizuku = findViewById(R.id.btnConnectShizuku)
+        btnSettings = findViewById(R.id.btnSettings)
+        btnStopServices = findViewById(R.id.btnStopServices)
+
         val btnSelectApps = findViewById<Button>(R.id.btnSelectApps)
         val btnDndSettings = findViewById<Button>(R.id.btnDndSettings)
         val btnAnimationSettings = findViewById<Button>(R.id.btnAnimationSettings)
         val btnToggleBoost = findViewById<Button>(R.id.btnToggleBoost)
         
-        val switchVpn = findViewById<Switch>(R.id.switchVpn)
-        val switchCrosshair = findViewById<Switch>(R.id.switchCrosshair)
+        switchVpn = findViewById(R.id.switchVpn)
+        switchCrosshair = findViewById(R.id.switchCrosshair)
         val switchBgAppKiller = findViewById<Switch>(R.id.switchBgAppKiller)
         val switchCacheClear = findViewById<Switch>(R.id.switchCacheClear)
         val switchSystemBoost = findViewById<Switch>(R.id.switchSystemBoost)
-        val switchBatteryOptimization = findViewById<Switch>(R.id.switchBatteryOptimization)
+        switchBatteryOptimization = findViewById(R.id.switchBatteryOptimization)
         
-        // RecyclerView aur Adapter initialization ("No adapter attached" fix)
+        // RecyclerView aur Adapter initialization
         rvSelectedGames = findViewById(R.id.rvSelectedGames)
-        rvSelectedGames.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        gamesAdapter = HomeGamesAdapter(selectedGamesList) { pkgName ->
-            // Click to launch game directly
-            val launchIntent = packageManager.getLaunchIntentForPackage(pkgName)
-            if (launchIntent != null) {
-                startActivity(launchIntent)
+        rvSelectedGames?.let { rv ->
+            rv.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+            gamesAdapter = HomeGamesAdapter(selectedGamesList) { pkgName ->
+                val launchIntent = packageManager.getLaunchIntentForPackage(pkgName)
+                if (launchIntent != null) {
+                    startActivity(launchIntent)
+                }
             }
+            rv.adapter = gamesAdapter
         }
-        rvSelectedGames.adapter = gamesAdapter
 
         updateShizukuStatus()
         checkFirstLaunchPermissions()
 
-        switchVpn?.isChecked = prefs.getBoolean("enable_vpn", true)
-        switchCrosshair?.isChecked = prefs.getBoolean("enable_crosshair", true)
-        switchBgAppKiller?.isChecked = prefs.getBoolean("enable_bg_killer", true)
-        switchCacheClear?.isChecked = prefs.getBoolean("enable_cache_clear", true)
-        switchSystemBoost?.isChecked = prefs.getBoolean("enable_system_boost", true)
-        
+        // FIRST-TIME LAUNCH: Default disabled (false) rakha gaya hai
+        switchVpn?.isChecked = prefs.getBoolean("enable_vpn", false)
+        switchCrosshair?.isChecked = prefs.getBoolean("enable_crosshair", false)
+        switchBgAppKiller?.isChecked = prefs.getBoolean("enable_bg_killer", false)
+        switchCacheClear?.isChecked = prefs.getBoolean("enable_cache_clear", false)
+        switchSystemBoost?.isChecked = prefs.getBoolean("enable_system_boost", false)
         switchBatteryOptimization?.isChecked = isBatteryOptimizationIgnored()
-        switchBatteryOptimization?.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) requestIgnoreBatteryOptimizations()
+        
+        switchBatteryOptimization?.setOnCheckedChangeListener { buttonView, isChecked ->
+            if (buttonView.isPressed) {
+                if (isChecked) {
+                    if (!isBatteryOptimizationIgnored()) {
+                        switchBatteryOptimization?.isChecked = false
+                        requestIgnoreBatteryOptimizations()
+                    }
+                }
+            }
         }
 
-        switchVpn?.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("enable_vpn", isChecked).apply()
-            if (isChecked) checkAndRequestVpnPermission()
+        switchVpn?.setOnCheckedChangeListener { buttonView, isChecked ->
+            if (buttonView.isPressed) {
+                if (isChecked) {
+                    val vpnIntent = VpnService.prepare(this)
+                    if (vpnIntent != null) {
+                        startActivityForResult(vpnIntent, VPN_REQUEST_CODE)
+                    } else {
+                        prefs.edit().putBoolean("enable_vpn", true).apply()
+                    }
+                } else {
+                    prefs.edit().putBoolean("enable_vpn", false).apply()
+                }
+            }
         }
 
-        switchCrosshair?.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("enable_crosshair", isChecked).apply()
-            if (isChecked) checkAndRequestOverlayPermission()
+        switchCrosshair?.setOnCheckedChangeListener { buttonView, isChecked ->
+            if (buttonView.isPressed) {
+                if (isChecked) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+                        switchCrosshair?.isChecked = false
+                        checkAndRequestOverlayPermission()
+                    } else {
+                        prefs.edit().putBoolean("enable_crosshair", true).apply()
+                    }
+                } else {
+                    prefs.edit().putBoolean("enable_crosshair", false).apply()
+                }
+            }
+        }
+
+        switchBgAppKiller?.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("enable_bg_killer", isChecked).apply()
+        }
+
+        switchCacheClear?.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("enable_cache_clear", isChecked).apply()
+        }
+
+        switchSystemBoost?.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("enable_system_boost", isChecked).apply()
+        }
+
+        // Top-Right Header Settings icon -> Permissions Activity
+        btnSettings?.setOnClickListener {
+            try {
+                startActivity(Intent(this, PermissionsActivity::class.java))
+            } catch (e: Exception) {
+                Toast.makeText(this, "PermissionsActivity not created yet", Toast.LENGTH_SHORT).show()
+            }
         }
 
         btnConnectShizuku?.setOnClickListener {
@@ -172,6 +234,41 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, SelectedAppsActivity::class.java)
             startActivity(intent)
         }
+
+        // STOP ALL SERVICES BUTTON HANDLER
+        btnStopServices?.setOnClickListener {
+            stopAllGameBoosterServices()
+        }
+    }
+
+    private fun stopAllGameBoosterServices() {
+        try {
+            // 1. Crosshair service stop
+            val crosshairIntent = Intent(this, CrosshairService::class.java).apply {
+                action = CrosshairService.ACTION_STOP
+            }
+            startService(crosshairIntent)
+            stopService(Intent(this, CrosshairService::class.java))
+
+            // 2. VPN service stop
+            val vpnIntent = Intent(this, GameVpnService::class.java).apply {
+                action = GameVpnService.ACTION_STOP_VPN
+            }
+            startService(vpnIntent)
+            stopService(Intent(this, GameVpnService::class.java))
+
+            // 3. Auto-cleaner service stop
+            val cleanerIntent = Intent(this, AppAutoCleanerService::class.java).apply {
+                action = AppAutoCleanerService.ACTION_STOP
+            }
+            startService(cleanerIntent)
+            stopService(Intent(this, AppAutoCleanerService::class.java))
+
+            Toast.makeText(this, "All Game Booster Services Stopped", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun loadSelectedGames() {
@@ -193,7 +290,7 @@ class MainActivity : AppCompatActivity() {
             withContext(Dispatchers.Main) {
                 selectedGamesList.clear()
                 selectedGamesList.addAll(tempList)
-                gamesAdapter.notifyDataSetChanged()
+                gamesAdapter?.notifyDataSetChanged()
             }
         }
     }
@@ -306,15 +403,27 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
+
         when (requestCode) {
             VPN_REQUEST_CODE -> {
                 if (resultCode == RESULT_OK) {
+                    prefs.edit().putBoolean("enable_vpn", true).apply()
+                    switchVpn?.isChecked = true
                     Toast.makeText(this, "VPN Permission Granted", Toast.LENGTH_SHORT).show()
+                } else {
+                    prefs.edit().putBoolean("enable_vpn", false).apply()
+                    switchVpn?.isChecked = false
                 }
             }
             OVERLAY_REQUEST_CODE -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
+                    prefs.edit().putBoolean("enable_crosshair", true).apply()
+                    switchCrosshair?.isChecked = true
                     Toast.makeText(this, "Overlay Permission Granted", Toast.LENGTH_SHORT).show()
+                } else {
+                    prefs.edit().putBoolean("enable_crosshair", false).apply()
+                    switchCrosshair?.isChecked = false
                 }
             }
         }
@@ -341,6 +450,17 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         updateShizukuStatus()
         loadSelectedGames()
+
+        // Status sync
+        switchBatteryOptimization?.isChecked = isBatteryOptimizationIgnored()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val hasOverlay = Settings.canDrawOverlays(this)
+            val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
+            if (!hasOverlay && switchCrosshair?.isChecked == true) {
+                switchCrosshair?.isChecked = false
+                prefs.edit().putBoolean("enable_crosshair", false).apply()
+            }
+        }
     }
 
     private fun updateShizukuStatus() {
