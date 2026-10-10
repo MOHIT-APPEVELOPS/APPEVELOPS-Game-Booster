@@ -61,19 +61,21 @@ class GameVpnService : VpnService() {
             .setOngoing(true)
             .build()
 
-        // Android 14+ Foreground Service Type Enforcement Fix
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            try {
+        // Android 14+ Safe Foreground Enforcement
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(
                     101,
                     notification,
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
                 )
-            } catch (e: Exception) {
+            } else {
                 startForeground(101, notification)
             }
-        } else {
-            startForeground(101, notification)
+        } catch (e: Exception) {
+            try {
+                startForeground(101, notification)
+            } catch (ignored: Exception) {}
         }
     }
 
@@ -81,50 +83,56 @@ class GameVpnService : VpnService() {
         try {
             if (vpnInterface != null) return
 
+            // 1. Check if system VPN permission is granted
+            val prepareIntent = prepare(this)
+            if (prepareIntent != null) {
+                // VPN Permission dialog user dwara allow nahi kiya gaya hai
+                return
+            }
+
             val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
             val selectedGames = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
             val pm = packageManager
 
             val builder = Builder()
-                .addAddress("10.120.0.2", 24)
+                .addAddress("10.0.0.2", 24)
                 .addRoute("0.0.0.0", 0)
                 .addDnsServer("8.8.8.8")
                 .setSession("NeonPingIsolation")
                 .setMtu(1500)
-                .setBlocking(true) // Blocking true rakhna zaroori hai taaki read() EAGAIN throw karke thread na maare
+                .setBlocking(false) // Non-blocking taaki UI aur packet stream block na ho
 
-            // Android System DNS aur local services ko direct allow karein
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 builder.allowBypass()
             }
 
-            // Selected games bypass (direct uninterrupted internet)
+            // Target games ko direct phone network bypass (Zero Latency)
             for (gamePkg in selectedGames) {
                 try {
                     pm.getPackageInfo(gamePkg, 0)
                     builder.addDisallowedApplication(gamePkg)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                } catch (ignored: Exception) {}
             }
 
-            // Game booster app bypass
+            // Neon App bypass
             try {
                 builder.addDisallowedApplication(packageName)
+            } catch (ignored: Exception) {}
+
+            try {
+                vpnInterface = builder.establish()
             } catch (e: Exception) {
-                e.printStackTrace()
+                vpnInterface = null
             }
 
-            vpnInterface = builder.establish()
-
-            // Fallback router agar OEM aggressive security /0 drop kare
+            // Universal Safe Fallback (ColorOS / Aggressive ROMs ke liye)
             if (vpnInterface == null) {
                 val fallbackBuilder = Builder()
-                    .addAddress("10.120.0.2", 24)
-                    .addRoute("10.120.0.0", 24)
+                    .addAddress("10.0.0.2", 24)
+                    .addRoute("10.0.0.0", 24)
                     .addDnsServer("8.8.8.8")
                     .setSession("NeonPingIsolation")
-                    .setBlocking(true)
+                    .setBlocking(false)
                 vpnInterface = fallbackBuilder.establish()
             }
 
@@ -150,12 +158,11 @@ class GameVpnService : VpnService() {
                             Thread.sleep(100)
                         }
                     } catch (e: IOException) {
-                        // Resource temporarily unavailable ko handle karein bina thread crash kiye
                         Thread.sleep(100)
                     }
                 }
             } catch (e: InterruptedException) {
-                // Thread naturally stopped
+                // Thread cleanly stopped
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
