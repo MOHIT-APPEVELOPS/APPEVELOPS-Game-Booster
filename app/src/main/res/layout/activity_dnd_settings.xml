@@ -32,28 +32,62 @@
             android:textStyle="bold" />
     </LinearLayout>
 
+    <!-- Master Switch: DND Services -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#161616"
+        android:padding="14dp"
+        android:layout_marginBottom="16dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="DND Services"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <Switch
+            android:id="@+id/switchDndMaster"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- Sub Option 1: Message Silent -->
+    <Switch
+        android:id="@+id/switchBlockNotifications"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:paddingVertical="8dp"
+        android:text="Message Silent"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp" />
+
+    <!-- Sub Option 2: Call DND -->
     <Switch
         android:id="@+id/switchBlockCalls"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="Block Incoming Calls"
-        android:textColor="#FFFFFF" />
+        android:paddingVertical="8dp"
+        android:text="Call DND"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp" />
 
-    <Switch
-        android:id="@+id/switchBlockNotifications"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Block Notifications"
-        android:textColor="#FFFFFF" />
-
+    <!-- Sub Option 3: Floating line -->
     <Switch
         android:id="@+id/switchAutoReject"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Auto Reject Calls"
-        android:textColor="#FFFFFF" />
+        android:layout_marginTop="12dp"
+        android:paddingVertical="8dp"
+        android:text="Floating line"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp" />
 
 </LinearLayout>
