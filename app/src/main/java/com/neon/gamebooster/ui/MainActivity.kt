@@ -1,6 +1,7 @@
 package com.neon.gamebooster.ui
 
 import android.Manifest
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -192,7 +193,7 @@ class MainActivity : AppCompatActivity() {
         if (isFirstLaunch) {
             AlertDialog.Builder(this)
                 .setTitle("Permissions Required")
-                .setMessage("Neon Game Booster needs Display Overlay, Battery Optimization, Notification, VPN, and Accessibility permissions to optimize your gameplay effectively.")
+                .setMessage("Neon Game Booster needs Display Overlay, Battery Optimization, Notification, DND Policy, VPN, and Accessibility permissions to optimize your gameplay effectively.")
                 .setPositiveButton("Accept") { _, _ ->
                     prefs.edit().putBoolean("is_first_launch", false).apply()
                     requestAllAppPermissions()
@@ -222,6 +223,28 @@ class MainActivity : AppCompatActivity() {
         }
 
         checkAndRequestVpnPermission()
+
+        // DND Policy Access (Call & Alert Blocking)
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !nm.isNotificationPolicyAccessGranted) {
+            try {
+                val intent = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                startActivity(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        // Notification Listener Access (Message Silent / Banner Dismiss)
+        val enabledListeners = Settings.Secure.getString(contentResolver, "enabled_notification_listeners") ?: ""
+        if (!enabledListeners.contains(packageName)) {
+            try {
+                val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                startActivity(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
 
         // Accessibility Service check & prompt
         if (!isAccessibilityServiceEnabled()) {
