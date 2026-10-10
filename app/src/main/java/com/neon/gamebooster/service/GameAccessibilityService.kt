@@ -4,51 +4,69 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
 import com.neon.gamebooster.utils.CpuBoosterManager
 
 class GameAccessibilityService : AccessibilityService() {
 
     private var activeGamePackage: String? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var closeGameRunnable: Runnable? = null
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            val packageName = event.packageName?.toString() ?: return
+        if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
 
-            // Ignore system UI or launcher to prevent flickering
-            if (packageName == "com.android.systemui" || packageName.contains("launcher")) {
-                return
-            }
+        val packageName = event.packageName?.toString() ?: return
 
-            val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
-            val selectedGames = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
+        // System overlays, keyboards aur notifications shade par flicker hone se bachayein
+        if (packageName == "com.android.systemui" || 
+            packageName.contains("inputmethod") || 
+            packageName.contains("launcher")) {
+            return
+        }
 
-            // Check if current focused app is one of the booster games
-            if (selectedGames.contains(packageName)) {
-                if (activeGamePackage != packageName) {
-                    activeGamePackage = packageName
-                    onGameOpened(prefs)
-                }
+        val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
+        val selectedGames = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
+
+        if (selectedGames.contains(packageName)) {
+            // Agar pehle se koi close timer chal raha tha to cancel karein (User wapas game me aaya)
+            closeGameRunnable?.let { handler.removeCallbacks(it) }
+            closeGameRunnable = null
+
+            if (activeGamePackage != packageName) {
+                activeGamePackage = packageName
+                onGameOpened(prefs)
             } else {
-                // Agar user game se bahar aa gaya hai
-                if (activeGamePackage != null) {
+                // Game dubara foreground mein aaya: Crosshair show karein
+                if (prefs.getBoolean("enable_crosshair", true)) {
+                    val showCrosshairIntent = Intent(this, CrosshairService::class.java).apply {
+                        action = CrosshairService.ACTION_SHOW
+                    }
+                    startService(showCrosshairIntent)
+                }
+            }
+        } else {
+            // User game se bahar aaya - 1 second ka delay (debounce) taaki quick switch mein crosshair crash na ho
+            if (activeGamePackage != null && closeGameRunnable == null) {
+                closeGameRunnable = Runnable {
                     onGameClosed(prefs)
                     activeGamePackage = null
+                    closeGameRunnable = null
                 }
+                handler.postDelayed(closeGameRunnable!!, 1000)
             }
         }
     }
 
     private fun onGameOpened(prefs: android.content.SharedPreferences) {
-        // 1. Silent Auto Clean & Boost trigger
-        val isBgKillerEnabled = prefs.getBoolean("enable_bg_killer", true)
-        val isCacheClearEnabled = prefs.getBoolean("enable_cache_clear", true)
-        if (isBgKillerEnabled || isCacheClearEnabled) {
-            val cleanIntent = Intent(this, AppAutoCleanerService::class.java)
-            startService(cleanIntent)
+        // 1. Silent Auto Clean
+        if (prefs.getBoolean("enable_bg_killer", true) || prefs.getBoolean("enable_cache_clear", true)) {
+            startService(Intent(this, AppAutoCleanerService::class.java))
         }
 
-        // 2. Start VPN if enabled in prefs
+        // 2. Start VPN
         if (prefs.getBoolean("enable_vpn", true)) {
             val vpnIntent = Intent(this, GameVpnService::class.java).apply {
                 action = GameVpnService.ACTION_START_VPN
@@ -56,9 +74,11 @@ class GameAccessibilityService : AccessibilityService() {
             startService(vpnIntent)
         }
 
-        // 3. Start Crosshair if enabled in prefs
+        // 3. Start Crosshair (Safe call)
         if (prefs.getBoolean("enable_crosshair", true)) {
-            val crosshairIntent = Intent(this, CrosshairService::class.java)
+            val crosshairIntent = Intent(this, CrosshairService::class.java).apply {
+                action = CrosshairService.ACTION_SHOW
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(crosshairIntent)
             } else {
@@ -66,7 +86,7 @@ class GameAccessibilityService : AccessibilityService() {
             }
         }
 
-        // 4. Apply Shizuku Animation Scales (0.1x) & Performance Mode
+        // 4. Apply Shizuku Tweaks
         try {
             if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
                 CpuBoosterManager.applyPerformanceMode()
@@ -86,10 +106,13 @@ class GameAccessibilityService : AccessibilityService() {
         }
         startService(stopVpnIntent)
 
-        // Stop Crosshair
-        stopService(Intent(this, CrosshairService::class.java))
+        // Hide/Stop Crosshair
+        val stopCrosshairIntent = Intent(this, CrosshairService::class.java).apply {
+            action = CrosshairService.ACTION_STOP
+        }
+        startService(stopCrosshairIntent)
 
-        // Restore Normal Phone Animations (Scale 1.0)
+        // Restore Animations
         try {
             if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
                 CpuBoosterManager.resetAnimationsToNormal()
@@ -102,9 +125,5 @@ class GameAccessibilityService : AccessibilityService() {
     override fun onInterrupt() {
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
         onGameClosed(prefs)
-    }
-
-    override fun onServiceConnected() {
-        super.onServiceConnected()
     }
 }
