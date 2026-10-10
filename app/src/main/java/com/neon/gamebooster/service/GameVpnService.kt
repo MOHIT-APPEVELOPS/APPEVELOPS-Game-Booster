@@ -24,6 +24,7 @@ class GameVpnService : VpnService() {
     companion object {
         const val ACTION_START_VPN = "com.neon.gamebooster.START_VPN"
         const val ACTION_STOP_VPN = "com.neon.gamebooster.STOP_VPN"
+        private const val NOTIFICATION_ID = 101
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -49,7 +50,9 @@ class GameVpnService : VpnService() {
                 channelId,
                 "VPN Ping Isolation Service",
                 NotificationManager.IMPORTANCE_LOW
-            )
+            ).apply {
+                description = "Game network latency stabilizer"
+            }
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
@@ -59,22 +62,30 @@ class GameVpnService : VpnService() {
             .setContentText("Game Ping Isolation Active")
             .setSmallIcon(android.R.drawable.ic_menu_share)
             .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 
-        // Android 14+ Safe Foreground Enforcement
+        // Android 14+ (API 34) and Android 15 compatibility fix (Manifest ke systemExempted ke sath sync)
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (Build.VERSION.SDK_INT >= 34) {
                 startForeground(
-                    101,
+                    NOTIFICATION_ID,
                     notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
+                )
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                @Suppress("DEPRECATION")
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_NONE
                 )
             } else {
-                startForeground(101, notification)
+                startForeground(NOTIFICATION_ID, notification)
             }
         } catch (e: Exception) {
             try {
-                startForeground(101, notification)
+                startForeground(NOTIFICATION_ID, notification)
             } catch (ignored: Exception) {}
         }
     }
@@ -86,7 +97,6 @@ class GameVpnService : VpnService() {
             // 1. Check if system VPN permission is granted
             val prepareIntent = prepare(this)
             if (prepareIntent != null) {
-                // VPN Permission dialog user dwara allow nahi kiya gaya hai
                 return
             }
 
@@ -98,9 +108,10 @@ class GameVpnService : VpnService() {
                 .addAddress("10.0.0.2", 24)
                 .addRoute("0.0.0.0", 0)
                 .addDnsServer("8.8.8.8")
+                .addDnsServer("1.1.1.1") // Private DNS fallback protection
                 .setSession("NeonPingIsolation")
                 .setMtu(1500)
-                .setBlocking(false) // Non-blocking taaki UI aur packet stream block na ho
+                .setBlocking(false)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 builder.allowBypass()
@@ -131,6 +142,7 @@ class GameVpnService : VpnService() {
                     .addAddress("10.0.0.2", 24)
                     .addRoute("10.0.0.0", 24)
                     .addDnsServer("8.8.8.8")
+                    .addDnsServer("1.1.1.1")
                     .setSession("NeonPingIsolation")
                     .setBlocking(false)
                 vpnInterface = fallbackBuilder.establish()
