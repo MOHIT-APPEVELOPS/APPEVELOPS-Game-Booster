@@ -3,59 +3,83 @@ package com.neon.gamebooster.service
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.view.accessibility.AccessibilityEvent
 import com.neon.gamebooster.utils.CpuBoosterManager
 
 class GameAccessibilityService : AccessibilityService() {
 
     private var activeGamePackage: String? = null
-    private val handler = Handler(Looper.getMainLooper())
-    private var closeGameRunnable: Runnable? = null
+    private val defaultLauncherPackages = HashSet<String>()
+
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        fetchLauncherPackages()
+    }
+
+    private fun fetchLauncherPackages() {
+        defaultLauncherPackages.clear()
+        val intent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+        }
+        val resolveInfos = packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        for (info in resolveInfos) {
+            info.activityInfo?.packageName?.let {
+                defaultLauncherPackages.add(it)
+            }
+        }
+        // Common OEM Launchers Fallback
+        defaultLauncherPackages.add("com.android.launcher")
+        defaultLauncherPackages.add("com.google.android.apps.nexuslauncher")
+        defaultLauncherPackages.add("com.sec.android.app.launcher")
+        defaultLauncherPackages.add("com.miui.home")
+        defaultLauncherPackages.add("com.oppo.launcher")
+        defaultLauncherPackages.add("com.coloros.launcher")
+        defaultLauncherPackages.add("com.oneplus.launcher")
+    }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
 
         val packageName = event.packageName?.toString() ?: return
 
-        // System overlays, keyboards aur notifications shade par flicker hone se bachayein
-        if (packageName == "com.android.systemui" || 
-            packageName.contains("inputmethod") || 
-            packageName.contains("launcher")) {
+        // 1. In-game transient overlays (volume, notification shade, input method) par ignore karein taaki flicker na ho
+        if (packageName == "com.android.systemui" || packageName.contains("inputmethod")) {
             return
         }
 
         val prefs = getSharedPreferences("GameBoosterPrefs", Context.MODE_PRIVATE)
         val selectedGames = prefs.getStringSet("selected_apps", emptySet()) ?: emptySet()
 
-        if (selectedGames.contains(packageName)) {
-            // Agar pehle se koi close timer chal raha tha to cancel karein (User wapas game me aaya)
-            closeGameRunnable?.let { handler.removeCallbacks(it) }
-            closeGameRunnable = null
+        // 2. Agar user direct Home Screen par chala gaya -> Instant Hide & Stop
+        if (defaultLauncherPackages.contains(packageName) || packageName.contains("launcher")) {
+            if (activeGamePackage != null) {
+                activeGamePackage = null
+                onGameClosed(prefs)
+            }
+            return
+        }
 
+        // 3. Target game focused hai -> Instant Show
+        if (selectedGames.contains(packageName)) {
             if (activeGamePackage != packageName) {
                 activeGamePackage = packageName
                 onGameOpened(prefs)
             } else {
-                // Game dubara foreground mein aaya: Crosshair show karein
+                // Game ke andar hi hai, crosshair state confirm rakhein bina restart kiye
                 if (prefs.getBoolean("enable_crosshair", true)) {
-                    val showCrosshairIntent = Intent(this, CrosshairService::class.java).apply {
+                    val showIntent = Intent(this, CrosshairService::class.java).apply {
                         action = CrosshairService.ACTION_SHOW
                     }
-                    startService(showCrosshairIntent)
+                    startService(showIntent)
                 }
             }
         } else {
-            // User game se bahar aaya - 1 second ka delay (debounce) taaki quick switch mein crosshair crash na ho
-            if (activeGamePackage != null && closeGameRunnable == null) {
-                closeGameRunnable = Runnable {
-                    onGameClosed(prefs)
-                    activeGamePackage = null
-                    closeGameRunnable = null
-                }
-                handler.postDelayed(closeGameRunnable!!, 1000)
+            // Kisi doosri non-game app (WhatsApp, Chrome etc.) par switch kiya -> Instant Exit
+            if (activeGamePackage != null) {
+                activeGamePackage = null
+                onGameClosed(prefs)
             }
         }
     }
@@ -74,7 +98,7 @@ class GameAccessibilityService : AccessibilityService() {
             startService(vpnIntent)
         }
 
-        // 3. Start Crosshair (Safe call)
+        // 3. Instant Crosshair Show
         if (prefs.getBoolean("enable_crosshair", true)) {
             val crosshairIntent = Intent(this, CrosshairService::class.java).apply {
                 action = CrosshairService.ACTION_SHOW
@@ -86,7 +110,7 @@ class GameAccessibilityService : AccessibilityService() {
             }
         }
 
-        // 4. Apply Shizuku Tweaks
+        // 4. Shizuku Tweaks
         try {
             if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
                 CpuBoosterManager.applyPerformanceMode()
@@ -100,17 +124,18 @@ class GameAccessibilityService : AccessibilityService() {
     }
 
     private fun onGameClosed(prefs: android.content.SharedPreferences) {
+        // Instant Hide & Stop Crosshair
+        val stopCrosshairIntent = Intent(this, CrosshairService::class.java).apply {
+            action = CrosshairService.ACTION_HIDE
+        }
+        startService(stopCrosshairIntent)
+        stopService(Intent(this, CrosshairService::class.java))
+
         // Stop VPN
         val stopVpnIntent = Intent(this, GameVpnService::class.java).apply {
             action = GameVpnService.ACTION_STOP_VPN
         }
         startService(stopVpnIntent)
-
-        // Hide/Stop Crosshair
-        val stopCrosshairIntent = Intent(this, CrosshairService::class.java).apply {
-            action = CrosshairService.ACTION_STOP
-        }
-        startService(stopCrosshairIntent)
 
         // Restore Animations
         try {
