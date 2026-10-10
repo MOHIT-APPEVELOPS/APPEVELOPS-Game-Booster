@@ -3,6 +3,7 @@ package com.neon.gamebooster.service
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.view.accessibility.AccessibilityEvent
 import com.neon.gamebooster.utils.CpuBoosterManager
 
@@ -39,7 +40,15 @@ class GameAccessibilityService : AccessibilityService() {
     }
 
     private fun onGameOpened(prefs: android.content.SharedPreferences) {
-        // 1. Start VPN if enabled in prefs
+        // 1. Silent Auto Clean & Boost trigger
+        val isBgKillerEnabled = prefs.getBoolean("enable_bg_killer", true)
+        val isCacheClearEnabled = prefs.getBoolean("enable_cache_clear", true)
+        if (isBgKillerEnabled || isCacheClearEnabled) {
+            val cleanIntent = Intent(this, AppAutoCleanerService::class.java)
+            startService(cleanIntent)
+        }
+
+        // 2. Start VPN if enabled in prefs
         if (prefs.getBoolean("enable_vpn", true)) {
             val vpnIntent = Intent(this, GameVpnService::class.java).apply {
                 action = GameVpnService.ACTION_START_VPN
@@ -47,12 +56,17 @@ class GameAccessibilityService : AccessibilityService() {
             startService(vpnIntent)
         }
 
-        // 2. Start Crosshair if enabled in prefs
+        // 3. Start Crosshair if enabled in prefs
         if (prefs.getBoolean("enable_crosshair", true)) {
-            startService(Intent(this, CrosshairService::class.java))
+            val crosshairIntent = Intent(this, CrosshairService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(crosshairIntent)
+            } else {
+                startService(crosshairIntent)
+            }
         }
 
-        // 3. Apply Shizuku Animation Scales (0.1x) & Performance Mode
+        // 4. Apply Shizuku Animation Scales (0.1x) & Performance Mode
         try {
             if (CpuBoosterManager.isShizukuAvailableAndGranted()) {
                 CpuBoosterManager.applyPerformanceMode()
