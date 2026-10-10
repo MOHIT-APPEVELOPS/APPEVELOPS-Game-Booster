@@ -11,14 +11,23 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
 import android.view.Gravity
+import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
 
 class CrosshairService : Service() {
 
+    companion object {
+        const val ACTION_START = "com.neon.gamebooster.ACTION_START_CROSSHAIR"
+        const val ACTION_STOP = "com.neon.gamebooster.ACTION_STOP_CROSSHAIR"
+        const val ACTION_HIDE = "com.neon.gamebooster.ACTION_HIDE_CROSSHAIR"
+        const val ACTION_SHOW = "com.neon.gamebooster.ACTION_SHOW_CROSSHAIR"
+    }
+
     private var windowManager: WindowManager? = null
     private var crosshairView: TextView? = null
+    private var isViewAttached = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -51,6 +60,11 @@ class CrosshairService : Service() {
     }
 
     private fun showCrosshair() {
+        if (isViewAttached) {
+            crosshairView?.visibility = View.VISIBLE
+            return
+        }
+
         try {
             windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
@@ -81,24 +95,56 @@ class CrosshairService : Service() {
             }
 
             windowManager?.addView(crosshairView, params)
+            isViewAttached = true
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun hideCrosshair() {
+        try {
+            crosshairView?.visibility = View.GONE
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun removeCrosshairView() {
+        try {
+            if (isViewAttached && crosshairView != null && windowManager != null) {
+                windowManager?.removeView(crosshairView)
+                isViewAttached = false
+                crosshairView = null
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_HIDE -> hideCrosshair()
+            ACTION_SHOW -> {
+                if (isViewAttached) {
+                    crosshairView?.visibility = View.VISIBLE
+                } else {
+                    showCrosshair()
+                }
+            }
+            ACTION_STOP -> stopSelf()
+            else -> {
+                if (isViewAttached) {
+                    crosshairView?.visibility = View.VISIBLE
+                } else {
+                    showCrosshair()
+                }
+            }
+        }
         return START_STICKY
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        try {
-            if (crosshairView != null && windowManager != null) {
-                windowManager?.removeView(crosshairView)
-                crosshairView = null
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        removeCrosshairView()
     }
 }
