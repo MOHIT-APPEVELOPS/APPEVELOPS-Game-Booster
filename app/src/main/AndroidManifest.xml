@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
@@ -25,7 +26,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.DayNight.NoActionBar">
 
-        <!-- Shizuku IPC Provider (Binder connection establish karne ke liye zaroori) -->
+        <!-- Shizuku IPC Provider -->
         <provider
             android:name="rikka.shizuku.ShizukuProvider"
             android:authorities="${applicationId}.shizuku"
@@ -77,6 +78,21 @@
             <property
                 android:name="android.app.foregroundServiceType"
                 android:value="specialUse" />
+        </service>
+
+        <!-- Auto Cleaner Service -->
+        <service
+            android:name=".service.AppAutoCleanerService"
+            android:exported="false" />
+
+        <!-- DND Message Blocker Service -->
+        <service
+            android:name=".service.GameNotificationBlockerService"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
         </service>
 
         <!-- Game Accessibility Service -->
